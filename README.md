@@ -4,9 +4,13 @@ K2R is a tool capable of indexing a set of read data (FASTA) by associating each
 
 ## Compilation
 
-git clone --recurse-submodules https://github.com/LeaVandamme/index_kmer_to_reads.git
+git clone --recurse-submodules https://github.com/LeaVandamme/K2R_.git
 
-cd index_kmer_to_reads/ ; make -j
+cd index_kmer_to_reads/ ;
+
+cd TurboPFor-Integer-Compression/ ; make ;
+
+cd .. ; make -j
 
 ## Build an index
 

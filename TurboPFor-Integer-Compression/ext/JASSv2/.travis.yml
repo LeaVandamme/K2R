@@ -1,0 +1,64 @@
+language: cpp
+sudo: required
+dist: trusty
+group: deprecated-2017Q4
+services:
+  -docker
+
+notifications:
+  slack: jassv2:IX7Yf0N9YJ0rM4OFVvCTrgCY
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "ZDE9oosphHNmha7IttPxLhz94rJ9zGw2GlVM92onlblrh94WouehQ6chQMNGbxP86/dPS62oT20e58nUNhAGDU/LB/efZXUXEPuQPC2XtWJcSwBDeHd8aUPM4RsE9n6c+XDWojK0FgiNK9avt6+WKvoL7OOCOH3kEUAAJDJN23JtDV5wd/tO5eCKpXU9Tc/qpvgPHnR1JgoSm30QvTNVX5pYxd6YofuX3f29yP5iM3Tm0qpWp4a/+9IZjpOFmfa4x01LYG09a6JtgNU7HYO9I01q55LDL9X/A2ycUMpX8/UUZI0+XSfsDxqCgDB0G0mYMKCF9VIC3U4NYxnYWClHJlxLCD1ZAGR9ZIFqD6+s1E42Jk1/8Uywsd+70nbx+yJL7H9b+/K7n7IRMXEgYtmu1TmTu/vSzCrFZOGPGZBurxN9ppuGudm2fYeKMyZUqD3Lh/7Au/1jomnNeSocR0glK9su95lIn759mTAp7utvIZfZDm2Tm7jwmOEvV7HqXr0HJZTYZt08noPyz9Oxu1Vtqpwz/i9oPEW1dBvaMB8ZJlWHKVaeQUyAufqhPyssKXe/v2avTXl/yDuNPVqezWOTDq7csNYyB4U7Vr3iMT6/t2jqndLvm9BRlMoHmHz7y88vwBhl2/vKcE9VYxtAvg0Ar16iHh18jnOODPy/F9npYu0="
+
+before_install:
+  - if [ "$TRAVIS_BRANCH" != "coverity_scan" -a "$TRAVIS_OS_NAME" == "linux" ]; then 
+      docker pull andrewtrotman/build-with-gcc;
+      docker run andrewtrotman/build-with-gcc -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH";
+    fi
+  - if [ "$TRAVIS_BRANCH" != "coverity_scan" -a "$TRAVIS_OS_NAME" == "osx" ]; then 
+      system_profiler SPHardwareDataType | grep "Model Identifier";
+      sysctl -n machdep.cpu.brand_string;
+      system_profiler SPSoftwareDataType;
+      xcodebuild -version;
+      git clone https://github.com/andrewtrotman/JASSv2.git;
+      cd JASSv2;
+      cd build;
+      ../docker/mac_build.sh;
+      xcodebuild -version;
+    fi
+  - if [ "$TRAVIS_BRANCH" == "coverity_scan" -a "$TRAVIS_OS_NAME" == "osx" ]; then 
+      echo -n | openssl s_client -connect https://scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-;
+    fi
+
+install: true
+
+script: true
+
+after_success: true
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+
+    - os: osx
+      compiler: clang
+
+branches:
+  only:
+    - master
+    - coverity_scan
+
+addons:
+  coverity_scan:
+    project:
+      name: "andrewtrotman/JASSv2"
+      description: "JASSv2 Coverity Scan Branch"
+    notification_email: andrew@trotman.com
+    build_command_prepend: "cd build && cmake -D FORCE_CMAKE_BUILD_TYPE=Debug .."
+    build_command: make
+    branch_pattern: coverity_scan

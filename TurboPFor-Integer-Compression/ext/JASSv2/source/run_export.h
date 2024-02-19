@@ -1,0 +1,108 @@
+/*
+	RUN_EXPORT.H
+	------------
+	Copyright (c) 2017 Andrew Trotman
+	Released under the 2-clause BSD license (See:https://en.wikipedia.org/wiki/BSD_licenses)
+*/
+/*!
+	@file
+	@brief Export a run in a standard run format
+	@author Andrew Trotman
+	@copyright 2017 Andrew Trotman
+*/
+
+#pragma once
+
+#include "run_export_trec.h"
+
+namespace JASS
+	{
+	/*
+		CLASS RUN_EXPORT
+		----------------
+	*/
+	/*!
+		@brief Export a run in an evaluation forum format.
+	*/
+	class run_export
+		{
+		public:
+			/*
+				ENUM RUN_EXPORT::FORMAT
+				-----------------------
+			*/
+			/*!
+				@enum format
+				@brief List of possible export formats
+			*/
+			enum format
+				{
+				TREC = 0					///< Export in TREC ad hoc format
+				};
+
+		public:
+			/*
+				RUN_EXPORT::RUN_EXPORT()
+				------------------------
+			*/
+			/*!
+				@brief Export a run in TREC run format for evaluation using trec_eval
+				@param forum [in] which format to export as (see enum run_export::format for options)
+				@param stream [in] The stream to write the run to
+				@tparam QUERY_ID [in] the ID of the query, an alphanumeric sequence, normally a positive integer
+				@param topic_id [in] The ID of this topic (can be alphanumeric, but no whitespace)
+				@tparam QUERY [in] The type of the query, normally a JASS::query type
+				@param result [in] The result set to export
+				@tparam NAME [in] the name of the run, normally a std::string or a char *
+				@param run_name [in] The name of the run
+				@param include_internal_ids [in] if true then this method will include the internal document ids as part of the run name (default = false)
+				@param run_is_ascending [in] is the run in ascending order (and so must be written out backwards)
+			*/
+			template <typename QUERY_ID, typename QUERY, typename NAME>
+			run_export(format forum, std::ostream &stream, const QUERY_ID &topic_id, QUERY &result, const NAME &run_name, bool include_internal_ids, bool run_is_ascending)
+				{
+				switch (forum)
+					{
+					case TREC:
+						run_export_trec(stream, topic_id, result, run_name, include_internal_ids, run_is_ascending);
+						break;
+					default:
+						JASS_assert(false);		//LCOVE_EXCL_LINE		// should never happen
+						break;						//LCOVE_EXCL_LINE		// should never happen
+					}
+				}
+
+			/*
+				RUN_EXPORT::UNITTEST()
+				----------------------
+			*/
+			/*!
+				@brief Unit test this class
+			*/
+			static void unittest(void)
+				{
+				std::vector<uint32_t>integer_sequence = {1, 1, 1, 1, 1, 1};
+				std::vector<std::string>primary_keys = {"zero", "one", "two", "three", "four", "five", "six"};
+				compress_integer_none *identity = new compress_integer_none;
+				identity->init(primary_keys, 10, 10);
+				std::ostringstream result;
+
+				identity->decode_and_process(1, integer_sequence.size(), integer_sequence.data(), sizeof(integer_sequence[0]) * integer_sequence.size());
+
+				run_export(run_export::TREC, result, "qid", *identity, "unittest", true, false);
+
+				std::string correct_answer =
+					"qid Q0 one 1 1 unittest(ID:1->1)\n"
+					"qid Q0 two 2 1 unittest(ID:2->1)\n"
+					"qid Q0 three 3 1 unittest(ID:3->1)\n"
+					"qid Q0 four 4 1 unittest(ID:4->1)\n"
+					"qid Q0 five 5 1 unittest(ID:5->1)\n"
+					"qid Q0 six 6 1 unittest(ID:6->1)\n";
+
+				JASS_assert(result.str() == correct_answer);
+
+				delete identity;
+				puts("run_export::PASSED");
+				}
+		};
+	}

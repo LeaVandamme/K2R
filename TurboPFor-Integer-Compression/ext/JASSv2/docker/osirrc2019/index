@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import subprocess
+
+print("Indexing...")
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--json", type=json.loads, required=True, help="the json input")
+
+args, unknown = parser.parse_known_args()
+
+# Iterate over the [name]=[path] pairs
+for collection in args.json["collections"]:
+	name, path = collection["name"], collection["path"]
+	if name.lower() == "robust04":
+		subprocess.run("/index_robust04 " + path, shell=True)
+	else:
+		print("Unknown collection: " + name)

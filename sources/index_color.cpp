@@ -105,10 +105,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                 getline(fichier,ligne);
                 read_line_pos.push_back(fichier.tellg());
                 getline(fichier,ligne);
-                
                 omp_unset_lock(&input_file_mutex);
                 uint64_t mmer_hash, ind_to_insert;
-                if (ligne[0] != '>' and ligne.size()>10){
+                if (ligne.size()>10){
                     if(homocomp){
                         ligne = homocompression(ligne);
                     }
@@ -159,33 +158,33 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     #pragma omp barrier
                     #pragma omp single
                     {
-                        // ligne.clear();
+                        ligne.clear();
                         getline(fichier_scd,ligne);
-                        getline(fichier_scd,ligne);
+			getline(fichier_scd,ligne);
                         eof=fichier_scd.eof();
-                        if (ligne.size()>1000){
+                        if (ligne.size()>10){
                             global_num_read++;
                             if(homocomp){
                                 ligne = homocompression(ligne);
                             }
-                            // if(global_num_read % 10000 == 0){
-                            //     cerr << "\r" << global_num_read << flush;
-                            // }
-                        }else{ligne.clear();}
+                            if(global_num_read % 10000 == 0){
+                                cerr << "\r" << global_num_read << flush;
+                            }
+                        }else{
+				ligne.clear();
+			}
                         map_current_read_color.clear();
                         minimizer_list.clear();
                         
                     }
                     uint64_t num_read = global_num_read;                   
-                    if (ligne.size()>1000){
-                        #pragma omp barrier
-                        #pragma omp single
-                        {
-                            minimizer_list_tmp = ml.get_minimizer_list(ligne);
-                            
-                            sortAndRemoveDuplicates(minimizer_list);   
-                        }
-                        #pragma omp for
+                    if (ligne.size()>10){
+			#pragma omp single
+			{
+                        	minimizer_list = ml.get_minimizer_list(ligne);
+                        	sortAndRemoveDuplicates(minimizer_list);
+			}
+			#pragma omp for
                         for(uint im=0; im<minimizer_list.size(); im++){
                             mmer mmer(minimizer_list[im]);
                             uint64_t mmer_hash, ind_to_insert;
@@ -267,19 +266,20 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             }
             fichier_scd.close();
         }else{
-            cerr << "Error opening the file.1" << endl;
+            cerr << "Error opening the file." << endl;
         }
         fichier.close();
     }
 
+    
     uint64_t colormap_entries(0);
     for(uint i(0);i<1024;i++){
         colormap_entries += colormap[i].size();
     }
 
-/*     cout << "Color deleted / Total nb color / Ratio : " << intToString(color_deleted) << " " << intToString(total_nb_color) << " " << (color_deleted/total_nb_color) << endl;
+    cout << "Color deleted / Total nb color / Ratio : " << intToString(color_deleted) << " " << intToString(total_nb_color) << " " << (color_deleted/total_nb_color) << endl;
     cout << "Number of entries in mmermap and colormap : " << intToString(mmermap.size()) << " " << intToString(colormap_entries) << endl;
-    cout<<"test11"<<endl;
+    
     uint64_t somme_taille_c(0), somme_taille_colorid_cmap(0), somme_taille_colorid_mmermap(0), somme_taille_mmerid_mmermap(0);
     for(uint i(0);i<1024;i++){
         color_map::iterator it = colormap[i].begin();
@@ -288,6 +288,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             it++;
         }
     }
+
     somme_taille_mmerid_mmermap = mmermap.size()*8;
     somme_taille_colorid_mmermap = mmermap.size()*4;
     somme_taille_colorid_cmap = colormap_entries * 8;
@@ -295,11 +296,12 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     cout << "Taille de la colormap : " << intToString(somme_taille_colorid_cmap + somme_taille_c) << " Bytes." << endl;
     cout << "Taille des couleurs compressées : " << intToString(somme_taille_c) << " Bytes." << endl;
     //cout << "Mémoire utilisée pour une couleur : " << double((somme_taille_c) / colormap.size()) << " Bytes." << endl;
+
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_index);
     auto seconds = end_index.tv_sec - end_count.tv_sec;
     cout << "Phase 2 CPU time : " << seconds << " seconds."  << endl;
     seconds = end_index.tv_sec - begin_index.tv_sec;
-    cout << "Total CPU time : " << seconds << " seconds."  << endl; */
+    cout << "Total CPU time : " << seconds << " seconds."  << endl;
 }
 
 
@@ -509,12 +511,6 @@ void Index_color::decremente_color(color_map& colormap, icolor color_id){
 }
 
 
-vector<string> Index_color::query_sequence_fp(mmer_map& mmermap, color_map* colormap, const string& sequence, double  threshold ){
-    vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, sequence, threshold);
-    return verif_fp(poss_reads, sequence, threshold);
-}
-
-
 vector<pair<string,uint32_t>> Index_color::query_sequence_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const vector<string>& query_sequences, uint16_t num_thread){
     vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
     return verif_fp(poss_reads, query_sequences, threshold, num_thread);
@@ -592,36 +588,6 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
 
 
 
-vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color_map* colormap, const string& sequence, double threshold){
-    ankerl::unordered_dense::map<iread, uint32_t> id_to_count;
-    vector<iread> res;
-    string curr_kmer;
-    vector<iread> curr_ids_read;
-    minimizerLister ml = minimizerLister(k, m);
-    auto minlist=ml.get_minimizer_list(sequence);
-    for(uint32_t i = 0; i < minlist.size(); i++){
-        if(mmermap.count(minlist[i]) != 0){
-            curr_ids_read = this->decompress_color(colormap[(mmermap[minlist[i]]%1024)][mmermap[minlist[i]]]);
-            for(auto id_read : curr_ids_read){
-                id_to_count[id_read]++;
-            }
-        }
-    }
-    // VERIF SEUIL
-    auto it = id_to_count.begin();
-    while (it != id_to_count.end()) {
-        if ((it->second) > threshold*minlist.size()) {
-            res.push_back(it->first);
-            
-        }else{
-        }
-        it++;
-    }
-    return res;
-}
-
-
-
 vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color_map* colormap, const vector<mmer> minlist, double threshold, uint16_t num_thread){
     ankerl::unordered_dense::map<iread, uint32_t> id_to_count;
     vector<iread> res;
@@ -690,7 +656,7 @@ vector<string> Index_color::verif_fp(const vector<iread>& reads_to_verify, const
 vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread){
     vector<pair<string,uint32_t>> reads_to_return;
     return reads_to_return;
-    /*minimizerLister ml = minimizerLister(k, m);
+    minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
     
     #pragma omp parallel num_threads(num_thread)
@@ -711,7 +677,7 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
         }
     }
    // cout << "Total nb reads verified : " << to_string(reads_to_verify.size()) << endl;
-    return reads_to_return;*/
+    return reads_to_return;
 }
 
 

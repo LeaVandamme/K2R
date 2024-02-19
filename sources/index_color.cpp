@@ -292,9 +292,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     somme_taille_mmerid_mmermap = mmermap.size()*8;
     somme_taille_colorid_mmermap = mmermap.size()*4;
     somme_taille_colorid_cmap = colormap_entries * 8;
-    cout << "Taille de la mmermap : " << intToString(somme_taille_mmerid_mmermap + somme_taille_colorid_mmermap) << " Bytes." << endl;
-    cout << "Taille de la colormap : " << intToString(somme_taille_colorid_cmap + somme_taille_c) << " Bytes." << endl;
-    cout << "Taille des couleurs compressées : " << intToString(somme_taille_c) << " Bytes." << endl;
+    cout << "M-mer map size : " << intToString(somme_taille_mmerid_mmermap + somme_taille_colorid_mmermap) << " Bytes." << endl;
+    cout << "Color map size : " << intToString(somme_taille_colorid_cmap + somme_taille_c) << " Bytes." << endl;
+    cout << "Compressed color size : " << intToString(somme_taille_c) << " Bytes." << endl;
     //cout << "Mémoire utilisée pour une couleur : " << double((somme_taille_c) / colormap.size()) << " Bytes." << endl;
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_index);

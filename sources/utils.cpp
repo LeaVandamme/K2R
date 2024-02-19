@@ -4,9 +4,6 @@
 #include <sys/resource.h>
 #include <algorithm>
 #include <bitset>
-#include "../BitMagic/src/bm.h"
-#include "../BitMagic/src/bmundef.h"
-#include "../BitMagic/src/bmsparsevec.h"
 #include "../include/fastDelta.h"
 #include "../headers/index_color.h"
 

@@ -18,7 +18,9 @@ Several options and parameters are available to adapt the creation of the index 
 
 ```
 ./k2r_index --read-file read_file.fasta --binary-prefix path_to_binary/binary_prefix --th nb_threads [OPTIONS]
+```
 
+```
 Arguments : 
 
 --read-file : Build index from reads file (FASTA only)
@@ -43,7 +45,9 @@ Several options and parameters are available to adapt the queries :
 
 ```
 ./k2r_query --query-file /path_to_fof/fof.txt --output-prefix prefix --binary-prefix path_to_index/index_prefix --thread nb_threads -f
+```
 
+```
 Arguments : 
 
 --query_file : File of file containing path to sequence Fasta file

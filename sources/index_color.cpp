@@ -655,7 +655,6 @@ vector<string> Index_color::verif_fp(const vector<iread>& reads_to_verify, const
 
 vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread){
     vector<pair<string,uint32_t>> reads_to_return;
-    return reads_to_return;
     minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
     
@@ -676,7 +675,7 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
             }
         }
     }
-   // cout << "Total nb reads verified : " << to_string(reads_to_verify.size()) << endl;
+    //cout << "Total nb reads verified : " << to_string(reads_to_verify.size()) << endl;
     return reads_to_return;
 }
 

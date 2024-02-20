@@ -4,13 +4,12 @@ K2R is a tool capable of indexing a set of read data (FASTA) by associating each
 
 ## Compilation
 
+```
 git clone --recurse-submodules https://github.com/LeaVandamme/K2R.git
-
 cd K2R/ ;
-
 cd TurboPFor-Integer-Compression/ ; make ;
-
 cd .. ; make -j
+```
 
 ## Build an index
 
@@ -36,13 +35,6 @@ Options :
 -o : Minimum of occurence of each minimizer (default : 2)
 ```
 
-### Output files
-
-K2R creates 2 binary files for each index : 
-
-- [binary_prefix]_mmer.bin, which contains the association between each minimizer and its color identifier.
-- [binary_prefix]_color.bin, which contains the association between each color identifier and its color.
-
 
 ## Launch queries
 
@@ -67,13 +59,20 @@ Options :
 
 ### Output files
 
-K2R creates 1 file for each query. For example if the queries are launched on a file of file containing 100 paths, 100 files will be created containing the reads in which the sequences appear.
+K2R creates 2 binary files for each index : 
+
+- [binary_prefix]_mmer.bin, which contains the association between each minimizer and its color identifier.
+- [binary_prefix]_color.bin, which contains the association between each color identifier and its color.
+
+K2R creates 1 file for each query. 
+
+For example if the queries are launched on a file of file containing 100 paths, 100 files will be created containing the reads in which the sequences appear.
 
 ## Example
 
 Here is an example of how to use K2R, using the data provided in the example folder. The dataset contains reads (HiFi) from the E.Coli genome, with a 10X coverage.
 
-We choose to reduce the filter size to $2^26$, as the dataset is sufficiently small.
+We choose to reduce the filter size to 2^26, as the dataset is sufficiently small.
 
 
 ```

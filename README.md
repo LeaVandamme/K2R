@@ -20,6 +20,14 @@ Several options and parameters are available to adapt the creation of the index 
 ```
 ./k2r_index --read-file read_file.fasta --binary-prefix path_to_binary/binary_prefix --th nb_threads [OPTIONS]
 
+Arguments : 
+
+--read-file : Build index from reads file (FASTA only)
+--binary-prefix : Path and prefix of the created index (default : binary_index)
+--thread : Number of threads (default : 1)
+
+Options : 
+
 --keep-unique : Keep all k-mers included unique ones (default : False)
 --homocompression : Remove repetitions from sequences (example : AGGTTATG -> AGTATG; default : False)
 -k : K-mer length (default : 31)
@@ -44,13 +52,17 @@ Several options and parameters are available to adapt the queries :
 ```
 ./k2r_query --query-file /path_to_fof/fof.txt --output-prefix prefix --binary-prefix path_to_index/index_prefix --thread nb_threads -f
 
+Arguments : 
+
 --query_file : File of file containing path to sequence Fasta file
 --output-prefix : prefix of output read file (default : query_output)
 --binary-prefix : Path and prefix of the index (default : binary_index)
 --thread : Number of threads (default : 1)
+-s or -f : query a unique sequence (-s) or several sequences from a file of file (-f)
+
+Options : 
+
 -t : Rate of minimizer found in the read to keep it in results (between 0 and 1, default: 1)
--s : query a unique sequence
--f : query several sequences from a file of file
 ```
 
 ### Output files
@@ -61,7 +73,7 @@ K2R creates 1 file for each query. For example if the queries are launched on a 
 
 Here is an example of how to use K2R, using the data provided in the example folder. The dataset contains reads (HiFi) from the E.Coli genome, with a 10X coverage.
 
-We choose to reduce the filter size to 2**26, as the dataset is sufficiently small.
+We choose to reduce the filter size to $2^26$, as the dataset is sufficiently small.
 
 
 ```
@@ -74,4 +86,12 @@ Once the index has been created, the sequences can be queried using the followin
 ```
 ./k2r_query --query-file example/sequences/fof.txt --output-prefix example/output/query_output --binary-prefix example/output/output_binary --th 1 -t 0.2 -f
 
-``` 
+```
+
+## Citation
+
+To find out more about the structure, a preprint is available here :
+
+> Lea Vandamme, Bastien Cazaux, Antoine Limasset : Tinted de Bruijn Graphs for efficient read extraction from sequencing datasets (<https://doi.org/10.1101/2024.02.15.580442>)
+
+

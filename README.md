@@ -85,14 +85,14 @@ We choose to reduce the filter size to 2^26, as the dataset is sufficiently smal
 
 
 ```
-./k2r_index --read-file example/reads/reads.fasta --binary-prefix example/output/output_binary -b 26
+./k2r_index -r example/reads/reads.fasta -b example/output/output_binary -s 26
 
 ```
 
 Once the index has been created, the sequences can be queried using the following command : 
   
 ```
-./k2r_query --query-file example/sequences/fof.txt --output-prefix example/output/query_output --binary-prefix example/output/output_binary --th 1 -t 0.2 -f
+./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -t 1 -r 0.2
 
 ```
 

@@ -72,7 +72,7 @@ uint64_t mmer_deleted = 0;
 
 
 
-void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint64_t min_occ, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread){
+void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_ab, uint16_t max_ab, bool keep_all, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread){
     struct timespec begin_index, end_index,end_count;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin_index);
     colormap=new color_map[1024];
@@ -116,9 +116,15 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         mmer_hash = revhash(mmer);
                         ind_to_insert = mmer_hash&size_vect_mask;
                         omp_set_lock(&nutex[ind_to_insert%1024]);
-                        if(counting_bf[ind_to_insert] < 250){
+                        if(keep_all){
                             counting_bf[ind_to_insert]++;
                         }
+                        else{
+                        if(counting_bf[ind_to_insert] < max_ab){
+                            counting_bf[ind_to_insert]++;
+                        }
+                        }
+
                         omp_unset_lock(&nutex[ind_to_insert%1024]);
                     }
                 }
@@ -131,9 +137,17 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         for (int i = 0; i < 1024; ++i) {
             bf_bool[i].resize(segment_size, false);
             for(uint64_t ii=0;ii<segment_size;ii++){
-                if(counting_bf[i*segment_size+ii] >= min_occ and counting_bf[i*segment_size+ii]<250){
+                if(keep_all){
+                    if(counting_bf[i*segment_size+ii] >= 1){
+                    bf_bool[i][ii] = true;
+                    }
+                }
+                else{
+                if(counting_bf[i*segment_size+ii] >= min_ab and counting_bf[i*segment_size+ii]<max_ab){
                     bf_bool[i][ii] = true;
                 }
+                }
+
             }
         }
         delete(counting_bf);
@@ -555,7 +569,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         }
         return;
     }else{
-        cerr << "Error opening the file.2" << endl;
+        cerr << "Error opening the file" << endl;
         return ;
     }
 }
@@ -564,6 +578,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 
 void Index_color::query_fof(const string& file_in,const string& outputprefix, double threshold, uint16_t num_thread){
     ifstream fichier(file_in, ios::in);
+    uint cpt(0);
     #pragma omp parallel num_threads(num_thread)
     {
         if(fichier){
@@ -573,7 +588,7 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
                 {
                     getline(fichier,ligne);
                 }
-                query_fasta(ligne, outputprefix, threshold, num_thread);
+                query_fasta(ligne, outputprefix + to_string(cpt), threshold, num_thread);
             }
         }else{
         }
@@ -626,29 +641,6 @@ string Index_color::get_read_sequence(iread i){
     string result;
     getline(*read_stream, result);
     return result;
-}
-
-
-
-
-vector<string> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequence, double threshold){
-
-    minimizerLister ml = minimizerLister(k, m);
-    vector<kmer> kmer_sequence = ml.get_kmer_list(sequence);
-    vector<kmer> kmers_read;
-    string read_seq;
-    vector<string> reads_to_return;
-    for(uint i(0); i<reads_to_verify.size(); i++){
-        uint cpt = 0;
-        read_seq = get_read_sequence(reads_to_verify[i]);
-        kmers_read=ml.get_kmer_list(read_seq);
-        uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
-        if(shared_kmers >= (threshold*sequence.size()-k+1)){
-            reads_to_return.push_back(read_seq);
-        }
-    }
-    //cout << "Total nb reads verified : " << to_string(reads_to_verify.size()) << endl;
-    return reads_to_return;
 }
 
 

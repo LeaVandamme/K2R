@@ -29,11 +29,13 @@ Arguments :
 
 Options : 
 
--k  :  k-mer size (default : 31)
--m  :  Minimizer size (default : 15)
--s  :  Counting bloom filter size (log(2), default 32)
--a  :  Minimum occurence of minimizers (default : 2)
--h  :  Homocompression of reads
+-k           :  k-mer size (default : 31)
+-m           :  Minimizer size (default : 15)
+-s           :  Counting bloom filter size (log(2), default 32)
+-h           :  Homocompression of reads
+--min-ab     :  Minimizers minimum abundance (default: 2)
+--max-ab     :  Minimizers maximum abundance (default: 1000)
+--keep-all   :  Keep all minimizers (minimum abundance = 1, no maximum ; default : false)
 ```
 
 

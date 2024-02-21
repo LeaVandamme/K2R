@@ -76,9 +76,7 @@ class Index_color{
         void incremente_color(color_map& colormap, icolor color_id);
         void decremente_color(color_map& colormap, icolor color_id);
 
-        //void create_index_mmer(const string& read_file, uint16_t k, uint16_t m, uint32_t abundance_threshold, bool homocompression);
-        //void create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint32_t abundance_threshold);
-        void create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint64_t min_occ, uint8_t counting_bf_size, bool homocompression, uint16_t num_thread);
+        void create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_occ, uint16_t max_ab, bool keep_all, uint8_t counting_bf_size, bool homocompression, uint16_t num_thread);
 
         void serialize_mmermap(string& output_file);
         void  deserialize_mmermap(string& input_file);

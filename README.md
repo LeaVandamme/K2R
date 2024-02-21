@@ -104,4 +104,4 @@ To find out more about the structure, a preprint is available here :
 
 > Lea Vandamme, Bastien Cazaux, Antoine Limasset : Tinted de Bruijn Graphs for efficient read extraction from sequencing datasets (<https://doi.org/10.1101/2024.02.15.580442>)
 
-
+Contact : lea.vandamme@univ-lille.fr

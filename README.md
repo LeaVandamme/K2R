@@ -17,48 +17,53 @@ K2R can index a set of reads from a FASTA file.
 Several options and parameters are available to adapt the creation of the index to your needs :
 
 ```
-./k2r_index --read-file read_file.fasta --binary-prefix path_to_binary/binary_prefix --th nb_threads [OPTIONS]
+./k2r_index -r read_file.fasta -b path_to_binary/binary_prefix -t nb_threads [OPTIONS]
 ```
 
 ```
 Arguments : 
 
---read-file : Build index from reads file (FASTA only)
---binary-prefix : Path and prefix of the created index (default : binary_index)
---thread : Number of threads (default : 1)
+-r  :  Build index from file (FASTA allowed)
+-b  :  Write index in binary files (default : binary_index)
+-t  :  Number of threads used (default: 1)
 
 Options : 
 
---keep-unique : Keep all k-mers included unique ones (default : False)
---homocompression : Remove repetitions from sequences (example : AGGTTATG -> AGTATG; default : False)
--k : K-mer length (default : 31)
--m : Minimizer length (default : 15)
--b : Counting bloom filter size (log(2), default : 32)
--o : Minimum of occurence of each minimizer (default : 2)
+-k  :  k-mer size (default : 31)
+-m  :  Minimizer size (default : 15)
+-s  :  Counting bloom filter size (log(2), default 32)
+-a  :  Minimum occurence of minimizers (default : 2)
+-h  :  Homocompression of reads
 ```
 
 
 ## Launch queries
 
-K2R can launch several queries from a file of file (fof), containing path to fasta files.
-Several options and parameters are available to adapt the queries :
+K2R can launch several queries from a file of file (fof), containing paths to fasta files.
 
 ```
-./k2r_query --query-file /path_to_fof/fof.txt --output-prefix prefix --binary-prefix path_to_index/index_prefix --thread nb_threads -f
+./k2r_query -f /path_to_fof/fof.txt -o output_prefix -b path_to_index/index_prefix -t nb_threads
 ```
+
+But can also launch a single request from a FASTA file : 
+
+```
+./k2r_query -s /path_to_fof/seq.fasta -o output_prefix -b path_to_index/index_prefix -t nb_threads
+```
+
+Several options and parameters are available to adapt the queries :
 
 ```
 Arguments : 
 
---query_file : File of file containing path to sequence Fasta file
---output-prefix : prefix of output read file (default : query_output)
---binary-prefix : Path and prefix of the index (default : binary_index)
---thread : Number of threads (default : 1)
--s or -f : query a unique sequence (-s) or several sequences from a file of file (-f)
+-s OR -f  :     Sequence file (FASTA) if a unique sequence is queried (-s), file of file if several sequences are queried (-f)
+-o        :     Write output reads in fasta file (default : query_output)
+-b        :     Index binary files prefix (default: binary_index)
+-t        :     Number of threads used (default: 1)
 
-Options : 
+Option : 
 
--t : Rate of minimizer found in the read to keep it in results (between 0 and 1, default: 1)
+-r        :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default : 0.4)
 ```
 
 ### Output files

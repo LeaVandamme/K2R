@@ -8,7 +8,7 @@
 #include "index_color.h"
 
 using namespace std;
-typedef bm::sparse_vector<uint32_t, bm::bvector<> > sparse_vector_u32;
+//typedef bm::sparse_vector<uint32_t, bm::bvector<> > sparse_vector_u32;
 
 string seq_from_fasta(const string& filename);
 uint64_t getMemorySelfMaxUsed ();

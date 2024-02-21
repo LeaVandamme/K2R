@@ -35,17 +35,17 @@ void PrintHelp()
 
 
 			"\n INDEX CONSTRUCTION\n"
-            "--read-file              :     Build index from file (FASTA allowed)\n"
-            "--keep-unique            :     Keep all minimizers in index, included uniques \n"
-			"--binary-prefix          :     Write index in binary files (default : binary_index) \n"
-            "--homocompression        :     Homocompression of reads \n"
-            "--thread                 :     Number of threads used (default: 1)\n"
+            "-r                       :     Build index from file (FASTA allowed)\n"
+			"-b                       :     Write index in binary files (default : binary_index) \n"
+            "-t                       :     Number of threads used (default: 1)\n"
 
 			"\n TWEAK PARAMETERS\n"
 			"-k                       :     k-mer size (default: " << intToString(k) << ")\n"
             "-m                       :     Minimizer size (default: " << intToString(m) << ")\n"
-			"-b                       :     Counting bloom filter size (log(2), default " << intToString(counting_bf_size) << ")\n"
-            "-o                       :     Minimum occurence of minimizers (default: << " << min_occ << ")\n";
+			"-s                       :     Counting bloom filter size (log(2), default " << intToString(counting_bf_size) << ")\n"
+            "-a                       :     Minimum occurence of minimizers (default: << " << min_occ << ")\n"
+			"-h                       :     Homocompression of reads \n";
+
 
 	exit(1);
 }
@@ -54,15 +54,9 @@ void PrintHelp()
 
 void ProcessArgs(int argc, char** argv)
 {
-	const char* const short_opts = "k:m:t:b:o:";
+	const char* const short_opts = "r:b:t:hk:m:s:a:";
 	const option long_opts[] =
 	{
-		{"read-file", required_argument, nullptr, 'r'},
-        {"keep-unique", no_argument, nullptr, 'u'},
-		{"binary-prefix", required_argument, nullptr, 'p'},
-        {"homocompression", no_argument, nullptr, 'h'},
-        {"thread", required_argument, nullptr, 'th'},
-		{nullptr, no_argument, nullptr, 0}
 	};
 	while (true)
 	{
@@ -76,16 +70,13 @@ void ProcessArgs(int argc, char** argv)
             case 'r':
 				read_file=optarg;
 				break;
-            case 'u':
-				keep_unique=true;
-				break;
-			case 'p':
+			case 'b':
 				binary_prefix = optarg;
 				break;
 			case 'h':
 				homocompression=true;
 				break;
-            case 'th':
+            case 't':
 				num_thread=stoi(optarg);
 				break;
             case 'k':
@@ -94,10 +85,10 @@ void ProcessArgs(int argc, char** argv)
             case 'm':
 				m=stoi(optarg);
 				break;
-			case 'b':
+			case 's':
 				counting_bf_size=stoi(optarg);
 				break;
-			case 'o':
+			case 'a':
 				min_occ=stoi(optarg);
 				break;
 			case '?': 

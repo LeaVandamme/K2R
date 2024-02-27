@@ -8,4 +8,3 @@ Decycling.o
 fastDelta.o
 index_color.o
 utils.o
-example/output/*

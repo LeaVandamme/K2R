@@ -7,8 +7,7 @@ K2R is a tool capable of indexing a set of read data (FASTA) by associating each
 ```
 git clone --recurse-submodules https://github.com/LeaVandamme/K2R.git
 cd K2R/ ;
-cd TurboPFor-Integer-Compression/ ; make ;
-cd .. ; make -j
+make -j
 ```
 
 ## Build an index
@@ -21,13 +20,13 @@ Several options and parameters are available to adapt the creation of the index 
 ```
 
 ```
-Arguments : 
+Arguments :
 
 -r  :  Build index from file (FASTA allowed)
 -b  :  Write index in binary files (default : binary_index)
 -t  :  Number of threads used (default: 1)
 
-Options : 
+Options :
 
 -k           :  k-mer size (default : 31)
 -m           :  Minimizer size (default : 15)
@@ -47,7 +46,7 @@ K2R can launch several queries from a file of file (fof), containing paths to fa
 ./k2r_query -f /path_to_fof/fof.txt -o output_prefix -b path_to_index/index_prefix -t nb_threads
 ```
 
-But can also launch a single request from a FASTA file : 
+But can also launch a single request from a FASTA file :
 
 ```
 ./k2r_query -s /path_to_fof/seq.fasta -o output_prefix -b path_to_index/index_prefix -t nb_threads
@@ -56,26 +55,26 @@ But can also launch a single request from a FASTA file :
 Several options and parameters are available to adapt the queries :
 
 ```
-Arguments : 
+Arguments :
 
 -s OR -f  :     Sequence file (FASTA) if a unique sequence is queried (-s), file of file if several sequences are queried (-f)
 -o        :     Write output reads in fasta file (default : query_output)
 -b        :     Index binary files prefix (default: binary_index)
 -t        :     Number of threads used (default: 1)
 
-Option : 
+Option :
 
 -r        :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default : 0.4)
 ```
 
 ### Output files
 
-K2R creates 2 binary files for each index : 
+K2R creates 2 binary files for each index :
 
 - [binary_prefix]_mmer.bin, which contains the association between each minimizer and its color identifier.
 - [binary_prefix]_color.bin, which contains the association between each color identifier and its color.
 
-K2R creates 1 file for each query. 
+K2R creates 1 file for each query.
 
 For example if the queries are launched on a file of file containing 100 paths, 100 files will be created containing the reads in which the sequences appear.
 
@@ -91,8 +90,8 @@ We choose to reduce the filter size to 2^26, as the dataset is sufficiently smal
 
 ```
 
-Once the index has been created, the sequences can be queried using the following command : 
-  
+Once the index has been created, the sequences can be queried using the following command :
+
 ```
 ./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -t 1 -r 0.2
 

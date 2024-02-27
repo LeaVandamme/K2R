@@ -7,10 +7,9 @@
 #include <typeinfo>
 #include <getopt.h>
 #include <omp.h>
-#include "../BitMagic/src/bm.h"
-#include "../BitMagic/src/bmundef.h"
-#include "../BitMagic/src/bmsparsevec.h"
-#include "../include/fastDelta.h"
+// #include "../BitMagic/src/bm.h"
+// #include "../BitMagic/src/bmundef.h"
+// #include "../BitMagic/src/bmsparsevec.h"
 #include "../headers/index_color.h"
 #include "../headers/utils.h"
 #include "../headers/MinimizerLister.h"

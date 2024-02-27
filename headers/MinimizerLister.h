@@ -3,8 +3,9 @@
 #include <vector>
 #include <fstream>
 #include <unordered_set>
-#include "Decycling.h"
 #include "utils.h"
+#include "type.h"
+#include "Decycling.h"
 
 
 class minimizerLister{
@@ -60,7 +61,6 @@ class minimizerLister{
 
 
     uint64_t get_hash(uint64_t x){
-        // return murmur64(x);
         uint classe(DS->memDouble(x));
         uint64_t result = murmur64(x);
         result&=M_mask;
@@ -232,7 +232,6 @@ class minimizerLister{
                     minimizer = get_minimizer_pos(seq, position_min);
                     hash_min  = get_hash(minimizer);
                     position_min += (i + 1);
-                } else {
                 }
             }
             // COMPUTE KMER MINIMIZER

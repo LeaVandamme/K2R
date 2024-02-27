@@ -1,0 +1,11 @@
+k2r_index
+k2r_index.o
+k2r_query
+k2r_query.o
+k2r_stat
+k2r_stat.o
+Decycling.o
+fastDelta.o
+index_color.o
+utils.o
+example/output/*

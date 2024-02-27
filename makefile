@@ -4,13 +4,17 @@ CFLAGS= -Ofast -std=c++17 -Wall -g -w -march=native -fopenmp -flto
 CFLAGS_DELTA= -Ofast -std=c++17 -Wall -g -w -march=native
 LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -lz -fopenmp
 
+PREXEC = turboPFor_compile
 EXEC = k2r_index k2r_query k2r_stat
-OBJ = utils.o fastDelta.o index_color.o Decycling.o
-OBJ_INDEX = k2r_index.o utils.o fastDelta.o index_color.o Decycling.o
-OBJ_QUERY = k2r_query.o utils.o fastDelta.o index_color.o Decycling.o
-OBJ_STAT = k2r_stat.o utils.o fastDelta.o index_color.o Decycling.o
+OBJ = utils.o index_color.o Decycling.o
+OBJ_INDEX = k2r_index.o utils.o index_color.o Decycling.o
+OBJ_QUERY = k2r_query.o utils.o index_color.o Decycling.o
+OBJ_STAT = k2r_stat.o utils.o index_color.o Decycling.o
 
-all : $(EXEC)
+all : $(PREXEC) $(EXEC)
+
+turboPFor_compile:
+	make -C TurboPFor-Integer-Compression/
 
 k2r_index : $(OBJ_INDEX)
 	$(CC) -o k2r_index $^ $(LDFLAGS)
@@ -39,10 +43,11 @@ index_color.o: sources/index_color.cpp headers/index_color.h
 Decycling.o: sources/Decycling.cpp headers/Decycling.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 
-fastDelta.o: include/fastDelta.c
-	$(CC) -o $@ -c $< $(CFLAGS_DELTA)
-
 clean:
 	rm -rf $(EXEC) $(OBJ) $(OBJ_INDEX) $(OBJ_QUERY)*.dat .snakemake .vscode log/memory_res/ log/reads_res/
 
 rebuild: clean $(EXEC)
+
+test:
+	./k2r_index -r example/reads/reads.fasta -b example/output/output_binary -s 26
+	./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -t 1 -r 0.2

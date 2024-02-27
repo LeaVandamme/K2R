@@ -5,11 +5,11 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <vector>
+#include "type.h"
 
 
 
 using namespace std;
-typedef uint64_t kmer;
 
 
 class DecyclingSet {
@@ -23,7 +23,6 @@ class DecyclingSet {
   public:
     DecyclingSet(uint k);
     ~DecyclingSet() {}
-    bool mem(kmer seq);
     uint memDouble(kmer seq);
 };
 

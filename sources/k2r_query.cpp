@@ -38,10 +38,9 @@ void PrintHelp()
             "-s OR -f                 :     Sequence file (FASTA) if a unique sequence is queried (-s), file of file if several sequences are queried (-f) \n"
 			"-o                       :     Write output reads in fasta file (default : query_output) \n"
             "-b                       :     Read index from binary files (default: binary_index) \n"
-            "-t                       :     Number of threads used (default: 1)\n"
 
 			"\n TWEAK PARAMETERS\n"
-            "-r                      :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default: " << intToString(threshold) << ")\n";
+            "-r                       :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default: " << intToString(threshold) << ")\n";
 
 	exit(1);
 }

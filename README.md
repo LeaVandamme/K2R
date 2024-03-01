@@ -43,13 +43,13 @@ Options :
 K2R can launch several queries from a file of file (fof), containing paths to fasta files.
 
 ```
-./k2r_query -f /path_to_fof/fof.txt -o output_prefix -b path_to_index/index_prefix -t nb_threads
+./k2r_query -f /path_to_fof/fof.txt -o output_prefix -b path_to_index/index_prefix [OPTIONS]
 ```
 
 But can also launch a single request from a FASTA file :
 
 ```
-./k2r_query -s /path_to_fof/seq.fasta -o output_prefix -b path_to_index/index_prefix -t nb_threads
+./k2r_query -s /path_to_fof/seq.fasta -o output_prefix -b path_to_index/index_prefix [OPTIONS]
 ```
 
 Several options and parameters are available to adapt the queries :
@@ -60,7 +60,6 @@ Arguments :
 -s OR -f  :     Sequence file (FASTA) if a unique sequence is queried (-s), file of file if several sequences are queried (-f)
 -o        :     Write output reads in fasta file (default : query_output)
 -b        :     Index binary files prefix (default: binary_index)
--t        :     Number of threads used (default: 1)
 
 Option :
 
@@ -93,7 +92,7 @@ We choose to reduce the filter size to 2^26, as the dataset is sufficiently smal
 Once the index has been created, the sequences can be queried using the following command :
 
 ```
-./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -t 1 -r 0.2
+./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -r 0.2
 
 ```
 

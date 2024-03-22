@@ -7,9 +7,9 @@ LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -l
 PREXEC = turboPFor_compile
 EXEC = k2r_index k2r_query k2r_stat
 OBJ = utils.o index_color.o Decycling.o
-OBJ_INDEX = k2r_index.o utils.o index_color.o Decycling.o
-OBJ_QUERY = k2r_query.o utils.o index_color.o Decycling.o
-OBJ_STAT = k2r_stat.o utils.o index_color.o Decycling.o
+OBJ_INDEX = k2r_index.o utils.o index_color.o Decycling.o TurboPFor-Integer-Compression/libic.a
+OBJ_QUERY = k2r_query.o utils.o index_color.o Decycling.o TurboPFor-Integer-Compression/libic.a
+OBJ_STAT = k2r_stat.o utils.o index_color.o Decycling.o TurboPFor-Integer-Compression/libic.a
 
 all : $(PREXEC) $(EXEC)
 

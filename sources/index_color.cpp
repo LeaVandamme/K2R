@@ -525,7 +525,10 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
                 #pragma omp critical (queryfasta) 
                 {
                     getline(fichier,ligne);
-                    lines.push_back(ligne);
+                    if(ligne[0] != '>'){
+                        lines.push_back(ligne);
+                    }
+                    
                 }
                 vect_reads.clear();
                 if (ligne[0] != '>' && !ligne.empty()) {
@@ -558,6 +561,8 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 void Index_color::query_fof(const string& file_in,const string& outputprefix, double threshold, uint16_t num_thread){
     ifstream fichier(file_in, ios::in);
     uint cpt(0);
+    string out = "";
+    
     #pragma omp parallel num_threads(num_thread) 
     {
         if(fichier) {
@@ -567,7 +572,10 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
                 {
                     getline(fichier,ligne);
                 }
-                query_fasta(ligne, outputprefix + to_string(cpt), threshold, num_thread);
+                size_t pos = ligne.find_last_of("/");
+                out = outputprefix + "_" + ligne.substr(pos+1, '.');
+                query_fasta(ligne, out, threshold, num_thread);
+                cpt++;
             }
         }
     }
@@ -636,7 +644,7 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
             read_seq = get_read_sequence(reads_to_verify[i]);
             kmers_read=ml.get_kmer_list(read_seq);
             uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
-            if(shared_kmers >= (threshold*(kmer_sequence.size()-k+1))) {
+            if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
                 #pragma omp critical 
                 {
                     reads_to_return.push_back({read_seq,reads_to_verify[i]});

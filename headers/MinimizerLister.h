@@ -174,6 +174,7 @@ class minimizerLister{
         uint64_t rcseq=rcb(seq,K);
         uint64_t canon=min(seq,rcseq);
         uint64_t i(0);
+        result.push_back(canon);
         for (; i + K < ref.size() ; ++i) {
             updateK(seq, ref[i + K]);
             canon=min(seq,rcb(seq,K)); 

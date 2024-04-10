@@ -674,4 +674,3 @@ seq Index_color::homocompression(seq& sequence){
     }
     return new_seq;
 }
-

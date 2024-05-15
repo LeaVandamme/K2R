@@ -25,19 +25,6 @@
 
 using namespace std;
 
-// typedef string color;
-// typedef uint64_t icolor;
-// typedef uint32_t mmer;
-// typedef uint32_t iread;
-// // typedef uint32_t iposread;
-// typedef uint64_t kmer;
-// typedef string seq;
-
-// typedef ankerl::unordered_dense::map<mmer, icolor> mmer_map;
-// typedef ankerl::unordered_dense::map<icolor, color> color_map;
-
-
-// NEW VERSION
 
 // Attributs
 
@@ -54,7 +41,9 @@ class Index_color{
         string binary_prefix;
         color_map* colormap;
         vector<uint64_t> read_line_pos;
-        uint64_t offsetUpdateAnchor, offsetUpdateMinimizer;
+        vector<uint64_t> header_line_pos;
+        uint64_t offsetUpdateAnchor;
+        uint64_t offsetUpdateMinimizer;
         uint64_t minimizer_number;
         uint64_t minimizer_match;
         
@@ -83,6 +72,7 @@ class Index_color{
 
         vector<iread> get_possible_reads_threshold(mmer_map& mmermap, color_map* colormap, const vector<mmer> minlist, double threshold, uint16_t num_thread);
         string get_read_sequence(iread i);
+        string get_header(iread i);
         vector<pair<string,uint32_t>> verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread);
 
         seq homocompression(seq& sequence);

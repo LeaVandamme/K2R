@@ -115,9 +115,7 @@ int main(int argc, char *argv[]){
             color_map::iterator it = index_color.colormap[i].begin();
             nb_color += index_color.colormap[i].size();
             while (it != index_color.colormap[i].end()){
-                norm_color_compress += it->second.size();
-                memcpy(&actual_size, it->second.data(), sizeof(uint32_t));
-                norm_color_decompress += actual_size;
+                norm_color_compress += it->second.compressed_array_size;
                 ab[actual_size]++;
                 if (actual_size <= 1) {
                     ab_le_1++;

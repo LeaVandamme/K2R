@@ -1,7 +1,7 @@
 CC = g++
 
-CFLAGS= -Ofast -std=c++17 -Wall -g -w -march=native -fopenmp -flto
-CFLAGS_DELTA= -Ofast -std=c++17 -Wall -g -w -march=native
+CFLAGS= -Ofast -std=c++17 -Wall  -w -march=native -fopenmp -flto
+CFLAGS_DELTA= -Ofast -std=c++17 -Wall -w -march=native
 LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -lz -fopenmp
 
 PREXEC = turboPFor_compile

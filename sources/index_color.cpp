@@ -57,10 +57,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         uint16_t* counting_bf = new uint16_t[size_vect];
         memset(counting_bf, 0, size_vect);
         vector<omp_lock_t> nutex(1024);
-        //omp_lock_t input_file_mutex,map_current_read_color_mutex, color_map_mutex[1024],mmermap_mutex;
         omp_lock_t input_file_mutex,vect_current_read_color_mutex, color_map_mutex[1024],mmermap_mutex;
         omp_init_lock(&input_file_mutex);
-        //omp_init_lock(&map_current_read_color_mutex);
         omp_init_lock(&vect_current_read_color_mutex);
         omp_init_lock(&mmermap_mutex);
         for(uint i(0); i<1024; i++) {
@@ -178,10 +176,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             mmer mmer(minimizer_list[im]);
                             uint64_t mmer_hash, ind_to_insert;
                             color color_to_verify, previous_color;
-                            //char* color_only_compressed;
                             mmer_hash = revhash(mmer);
                             ind_to_insert = mmer_hash&size_vect_mask;
+                            cout << ind_to_insert % segment_size << endl;
                             if(bf_bool[ind_to_insert/segment_size][ind_to_insert%segment_size]) {
+                                cout << "ttt" << endl;
                                 // IF KMER NOT IN MAP
                                 if (mmermap.find(mmer) == mmermap.end()) {
                                     color_to_verify = create_color(num_read-1);
@@ -268,6 +267,25 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                 }
             }
             fichier_scd.close();
+            // COMPRESSION DU RESTE
+            uint32_t cpt(0);
+            for(uint i(0); i<1024; i++){
+                color_map::iterator it = colormap[i].begin();
+                while (it != colormap[i].end()) {
+                    memcpy(&cpt, it->second.compressed_array, sizeof(uint32_t));
+                    vector<iread> uncompressed_vector= decompress_color(it->second);
+                    for(uint i=0; i<16;i++){
+                        if(it->second.last_id_reads[i] != 0 || i == 0)
+                            uncompressed_vector.push_back(it->second.last_id_reads[i]);
+                            cpt+=1;
+                    }
+                    string c_color = compress_color(uncompressed_vector);
+                    it->second.compressed_array_size += cpt;
+                    cpt=0;
+                    it->second.nb_occ = 1;
+                    it->second.compressed_array = (char*)c_color.c_str();
+                }   
+            }
         }
         else {
             cerr << "Error opening the file." << endl;
@@ -523,7 +541,6 @@ color Index_color::create_color(color& existing_color, iread id_read) {
         }
     }
 
-    cout << nb_elem << endl;
     if(nb_elem<16){
         bool insert = false;
         existing_color.last_id_reads[nb_elem] = id_read;

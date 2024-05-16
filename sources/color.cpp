@@ -30,8 +30,8 @@ Color::Color(Color color, iread id){
 // Destructeur ?
 vector<iread> Color::get_vect_ireads(){
     vector<iread> uncompressed_vector= decompress_color(this->compressed_array);
-    for(uint32_t id : this->last_id_reads){
-        uncompressed_vector.push_back(id);
+    for(uint i = 0; i<this->nb_elem_last; i++){
+        uncompressed_vector.push_back(this->last_id_reads[i]);
     }
     return uncompressed_vector;
 }
@@ -56,7 +56,7 @@ bool Color::decremente_occurence(){
 }
 
 void Color::add_idread(iread id){
-    
+
     if(this->nb_elem_last < 16){
         this->last_id_reads[this->nb_elem_last] = id;
         this->nb_elem_last++;
@@ -92,4 +92,12 @@ vector<iread> decompress_color(string to_decompress) {
     uint32_t scomp2=p4nd1dec32((unsigned char*) to_decompress.data(), to_decompress.size(), uncompressed_vector.data());
     uncompressed_vector.resize(to_decompress.size());
     return uncompressed_vector;
+}
+
+ostream &operator<<(std::ostream &os, Color &c) {
+    for (iread r : c.get_vect_ireads()) {
+        os << r << " ";
+    }
+    os << " & " << c.get_nb_occ() << " & " << c.compressed_array_size << " & " << c.nb_elem_last << endl;
+    return os;
 }

@@ -10,6 +10,7 @@ OBJ = utils.o index_color.o Decycling.o
 OBJ_INDEX = k2r_index.o utils.o index_color.o Decycling.o TurboPFor-Integer-Compression/libic.a
 OBJ_QUERY = k2r_query.o utils.o index_color.o Decycling.o TurboPFor-Integer-Compression/libic.a
 OBJ_STAT = k2r_stat.o utils.o index_color.o Decycling.o  TurboPFor-Integer-Compression/libic.a
+OBJ_TEST_COLOR = color.o test_colors.o
 
 all :  $(EXEC)
 
@@ -41,6 +42,15 @@ index_color.o: sources/index_color.cpp headers/index_color.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 Decycling.o: sources/Decycling.cpp headers/Decycling.h
+	$(CC) -o $@ -c $< $(CFLAGS)
+
+color.o: sources/color.cpp headers/color.h
+	$(CC) -o $@ -c $< $(CFLAGS)
+
+test_colors : $(OBJ_TEST_COLOR)
+	$(CC) -o test_colors $^ $(LDFLAGS)
+
+test_colors.o: tests/test_colors.cpp
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:

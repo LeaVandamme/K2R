@@ -32,7 +32,7 @@ class Color{
             iread nb_elem_last;
             uint32_t last_id_reads[16] = {};
             static uint color_deleted;
-        
+
         Color(iread id);
         Color(Color& color);
         Color(Color color, iread id);
@@ -45,7 +45,8 @@ class Color{
 
 };
 
-        string compress_color(vector<iread>& to_compress);
-        vector<iread> decompress_color(string to_decompress);
+string compress_color(vector<iread>& to_compress);
+vector<iread> decompress_color(string to_decompress);
+ostream &operator<<(std::ostream &os, Color &c);
 
 #endif

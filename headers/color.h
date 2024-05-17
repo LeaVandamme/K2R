@@ -42,11 +42,13 @@ class Color{
         bool decremente_occurence();
         vector<iread> get_vect_ireads();
         uint32_t get_nb_occ();
+        uint32_t get_nb_ireads();
+        string get_all_compressed();
 
 };
 
 string compress_color(vector<iread>& to_compress);
-vector<iread> decompress_color(string to_decompress);
+vector<iread> decompress_color(string to_decompress, uint32_t size);
 ostream &operator<<(std::ostream &os, Color &c);
 
 #endif

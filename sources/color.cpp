@@ -29,7 +29,7 @@ Color::Color(Color color, iread id){
 
 // Destructeur ?
 vector<iread> Color::get_vect_ireads(){
-    vector<iread> uncompressed_vector= decompress_color(this->compressed_array);
+    vector<iread> uncompressed_vector= decompress_color(this->compressed_array, this->compressed_array_size);
     for(uint i = 0; i<this->nb_elem_last; i++){
         uncompressed_vector.push_back(this->last_id_reads[i]);
     }
@@ -56,24 +56,36 @@ bool Color::decremente_occurence(){
 }
 
 void Color::add_idread(iread id){
-
-    if(this->nb_elem_last < 16){
-        this->last_id_reads[this->nb_elem_last] = id;
-        this->nb_elem_last++;
-    }
-
-    else{
+    // Si le buffer est plein, on le vide dans la liste compressee
+    if(this->nb_elem_last == 16){
         vector<iread> uncompressed_vector = this->get_vect_ireads();
-        string c_color = compress_color(uncompressed_vector);
+        //CHANGMENT COMPRESSED LIST
+        this->compressed_array = compress_color(uncompressed_vector);
         // CHANGEMENT SIZE
         this->compressed_array_size += 16;
-        // CHANGEMENT NB_OCC
         this->nb_elem_last = 0;
+        // CHANGEMENT NB_OCC
         this->nb_occ = 1;
-        //CHANGMENT COMPRESSED LIST
-        this->compressed_array = c_color.c_str();
     }
+    // Dans tous les cas, on ajoute un element a la derniere place du buffer
+    this->last_id_reads[this->nb_elem_last] = id;
+    this->nb_elem_last++;
 }
+
+uint32_t Color::get_nb_ireads() {
+    return this->compressed_array_size + this->nb_elem_last;
+}
+
+string Color::get_all_compressed() {
+    vector<iread> uncompressed_vector = this->get_vect_ireads();
+    return compress_color(uncompressed_vector);
+    // Bastien : on pourrait ajouter aussi dans le string, le nombre d'élements ainsi que l'occurrence comme ça on n'aurait plus qu'un string à sérialiser et il faudrait faire un constructeur de Color qui prend ce string et créer la couleur correspondante.
+}
+
+// Color::Color(string compressed_color){
+//     // récupère le string correspondant au vecteur compressed, le nombre d'éléments ainsi que l'occurence et met les variables de classe à jour en mettant le buffer (last_id_reads) à vide (on n'aura plus un multiple de 16 pour le compressed_array mais je ne pense pas que ce soit grave).
+// }
+
 
 // Serialization, deserialization
 
@@ -81,16 +93,17 @@ void Color::add_idread(iread id){
 
 string compress_color(vector<iread>& to_compress) {
     vector<unsigned char> compressed_vector(to_compress.size()*32 + 1000);
-    uint32_t compressed_vector_size=p4nd1enc32(to_compress.data(), to_compress.size() , compressed_vector.data());
+    uint32_t compressed_vector_size = p4nd1enc32(to_compress.data(), to_compress.size() , compressed_vector.data());
+
     compressed_vector.resize(compressed_vector_size);
     string color_string(compressed_vector.begin(), compressed_vector.end());
     return color_string;
 }
 
-vector<iread> decompress_color(string to_decompress) {
-    vector<iread> uncompressed_vector(to_decompress.size()*2+1000);
-    uint32_t scomp2=p4nd1dec32((unsigned char*) to_decompress.data(), to_decompress.size(), uncompressed_vector.data());
-    uncompressed_vector.resize(to_decompress.size());
+vector<iread> decompress_color(string to_decompress, uint32_t size) {
+    vector<iread> uncompressed_vector(to_decompress.size()*2+100);
+    uint32_t uncompressed_vector_size = p4nd1dec32((unsigned char*) to_decompress.data(), size, uncompressed_vector.data());
+    uncompressed_vector.resize(size);
     return uncompressed_vector;
 }
 
@@ -98,6 +111,6 @@ ostream &operator<<(std::ostream &os, Color &c) {
     for (iread r : c.get_vect_ireads()) {
         os << r << " ";
     }
-    os << " & " << c.get_nb_occ() << " & " << c.compressed_array_size << " & " << c.nb_elem_last << endl;
+    os << " & " << c.get_nb_occ() << " : " << c.get_nb_ireads() << " (" << c.compressed_array_size << " + " << c.nb_elem_last << ")";
     return os;
 }

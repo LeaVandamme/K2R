@@ -2,6 +2,12 @@
 
 using namespace std;
 
+Color::Color(){
+    this->compressed_array_size=0;
+    this->nb_occ=1;
+    this->nb_elem_last=0;
+}
+
 Color::Color(iread id){
     this->compressed_array_size=0;
     this->nb_occ=1;
@@ -9,7 +15,7 @@ Color::Color(iread id){
     this->last_id_reads[0] = id;
 }
 
-Color::Color(Color& color){
+/*Color::Color(Color& color){
     this->compressed_array_size = color.compressed_array_size;
     this->compressed_array = color.compressed_array;
     this->nb_occ = color.nb_occ;
@@ -17,7 +23,7 @@ Color::Color(Color& color){
     for(uint i =0; i<this->nb_elem_last; i++){
         this->last_id_reads[i] = color.last_id_reads[i];
     }
-}
+}*/
 
 
 Color::Color(Color color, iread id){
@@ -26,8 +32,59 @@ Color::Color(Color color, iread id){
     this->add_idread(id);
 }
 
+Color::Color(uint32_t compressed_array_size, string compressed_array, uint32_t nb_occ){
+    this->set_compressed_array_size(compressed_array_size);
+    this->set_compressed_array(compressed_array);
+    this->set_nb_occ(nb_occ);
+    this->set_nb_elem_last(0);
+}
 
-// Destructeur ?
+
+bool Color::operator ==(const Color& c){
+    bool equal = true;
+    uint i = 0;
+
+    while(!equal && i<16){
+        if(this->last_id_reads[i] != c.last_id_reads[i]){
+            equal = false;
+        }
+        i++;
+    }
+    i = 0;
+    if(equal){
+        while(!equal && i<compressed_array_size){
+            if(this->compressed_array[i] != c.compressed_array[i]){
+                equal = false;
+            }
+        i++;
+        }
+    }
+    return equal;
+}
+
+bool Color::operator !=(const Color& c){
+    bool equal = true;
+    uint i = 0;
+
+    while(equal && i<16){
+        if(this->last_id_reads[i] != c.last_id_reads[i]){
+            equal = false;
+        }
+        i++;
+    }
+    i = 0;
+    if(equal){
+        while(equal && i<compressed_array_size){
+            if(this->compressed_array[i] != c.compressed_array[i]){
+                equal = false;
+            }
+        i++;
+        }
+    }
+    return !equal;
+}
+
+
 vector<iread> Color::get_vect_ireads(){
     vector<iread> uncompressed_vector= decompress_color(this->compressed_array, this->compressed_array_size);
     for(uint i = 0; i<this->nb_elem_last; i++){
@@ -36,19 +93,22 @@ vector<iread> Color::get_vect_ireads(){
     return uncompressed_vector;
 }
 
-uint32_t Color::get_nb_occ(){
-    return this->nb_occ;
+
+uint32_t Color::get_nb_ireads() {
+    return this->get_compressed_array_size() + this->get_nb_elem_last();
 }
 
+
+
 void Color::incremente_occurence(){
-    this->nb_occ++;
+    this->set_nb_occ(this->get_nb_occ()+1);
 }
 
 uint Color::color_deleted = 0;
 // return if need to delete
 bool Color::decremente_occurence(){
-    this->nb_occ --;
-    if(this->nb_occ == 0) {
+    this->set_nb_occ(this->get_nb_occ()-1);
+    if(this->get_nb_occ() == 0) {
         color_deleted++;
         return true;
     }
@@ -68,12 +128,40 @@ void Color::add_idread(iread id){
         this->nb_occ = 1;
     }
     // Dans tous les cas, on ajoute un element a la derniere place du buffer
-    this->last_id_reads[this->nb_elem_last] = id;
+    this->last_id_reads[this->get_nb_elem_last()] = id;
     this->nb_elem_last++;
 }
 
-uint32_t Color::get_nb_ireads() {
-    return this->compressed_array_size + this->nb_elem_last;
+string Color::get_compressed_array(){
+    return this->compressed_array; 
+}
+
+uint32_t Color::get_compressed_array_size(){
+    return this->compressed_array_size;
+}
+
+uint32_t Color::get_nb_occ(){
+    return this->nb_occ;
+}
+
+uint32_t Color::get_nb_elem_last(){
+    return this->nb_elem_last;
+}
+
+void Color::set_nb_occ(uint32_t nb_occ){
+    this->nb_occ = nb_occ;
+}
+
+void Color::set_compressed_array(string c_array){
+    this->compressed_array = c_array;
+}
+
+void Color::set_nb_elem_last(uint32_t nb_elem_last){
+    this->nb_elem_last = nb_elem_last;
+}
+
+void Color::set_compressed_array_size(uint32_t size){
+    this->compressed_array_size = size;
 }
 
 string Color::get_all_compressed() {
@@ -89,12 +177,20 @@ string Color::get_all_compressed() {
 
 // Serialization, deserialization
 
+void Color::serialize_color(icolor idcolor, string& output_file){
+    zstr::ofstream file(output_file);
+    file.write((char*) &(idcolor), sizeof(icolor));
+    file.write((char*) &(this->get_compressed_array()[0]), sizeof(this->get_compressed_array_size()));
+    file.write((char*) (this->get_nb_occ()), sizeof(uint32_t));
+    file.write((char*) (this->get_compressed_array_size()), sizeof(uint32_t));
+    file.close();
+}
+
 
 
 string compress_color(vector<iread>& to_compress) {
     vector<unsigned char> compressed_vector(to_compress.size()*32 + 1000);
     uint32_t compressed_vector_size = p4nd1enc32(to_compress.data(), to_compress.size() , compressed_vector.data());
-
     compressed_vector.resize(compressed_vector_size);
     string color_string(compressed_vector.begin(), compressed_vector.end());
     return color_string;
@@ -111,6 +207,6 @@ ostream &operator<<(std::ostream &os, Color &c) {
     for (iread r : c.get_vect_ireads()) {
         os << r << " ";
     }
-    os << " & " << c.get_nb_occ() << " : " << c.get_nb_ireads() << " (" << c.compressed_array_size << " + " << c.nb_elem_last << ")";
+    os << " & " << c.get_nb_occ() << " : " << c.get_nb_ireads() << " (" << c.get_compressed_array_size() << " + " << c.get_nb_elem_last() << ")";
     return os;
 }

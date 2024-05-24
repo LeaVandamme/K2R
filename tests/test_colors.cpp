@@ -1,4 +1,5 @@
 #include "../headers/color.h"
+#include "../headers/index_color.h"
 
 using namespace std;
 
@@ -60,9 +61,36 @@ int main(int argc, char *argv[]){
     cout << c << endl;
     cout << e << endl;
 
+    cout << "####### " << "Creation Color(compressed_array_size, compressed_array, nb_occ, last_id_reads)" << endl;
+
+    vector<uint32_t> not_compressed = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    string compressed = compress_color(not_compressed);
+    Color f = Color(16,compressed,1);
+    cout << f << endl;
 
 
+    cout << "####### " << "Test ==" << endl;
 
+    Color g = Color(16,compressed,1);
+    if(f == g){
+        cout << "ok" << endl;
+    }
+    else{
+        cout << "bug !=" << endl;
+    }
+
+
+    cout << "####### " << "Test !=" << endl;
+
+    vector<uint32_t> not_compressed2 = {0,1,2,4,5,6,7,8,9,10,11,12,13,14,58};
+    string compressed2 = compress_color(not_compressed2);
+    Color h = Color(16,compressed2,1);
+    if(f != h){
+        cout << "ok" << endl;
+    }
+    else{
+        cout << "bug !=" << endl;
+    }
 
     return 0;
 }

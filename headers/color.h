@@ -35,9 +35,10 @@ class Color{
 
         Color();
         Color(iread id);
-        Color(Color& color);
-        Color(Color color, iread id);
+        Color(const Color& color);
+        Color(const Color& color, iread id);
         Color(uint32_t compressed_array_size, string compressed_array, uint32_t nb_occ);
+        Color(zstr::ifstream& file);
 
         bool operator ==(const Color& c);
         bool operator !=(const Color& c);
@@ -58,8 +59,9 @@ class Color{
         void incremente_occurence();
         bool decremente_occurence(); // VOIR CA
         vector<iread> get_vect_ireads();
+        void final_compression();
 
-        void serialize_color(icolor idcolor, string& output_file);
+        void serialize_color(icolor idcolor, zstr::ofstream& output_file);
 };
 
 string compress_color(vector<iread>& to_compress);

@@ -15,7 +15,7 @@ Color::Color(iread id){
     this->last_id_reads[0] = id;
 }
 
-/*Color::Color(Color& color){
+Color::Color(const Color& color){
     this->compressed_array_size = color.compressed_array_size;
     this->compressed_array = color.compressed_array;
     this->nb_occ = color.nb_occ;
@@ -23,10 +23,10 @@ Color::Color(iread id){
     for(uint i =0; i<this->nb_elem_last; i++){
         this->last_id_reads[i] = color.last_id_reads[i];
     }
-}*/
+}
 
 
-Color::Color(Color color, iread id){
+Color::Color(const Color& color, iread id){
     // decrease
     new (this) Color(color);
     this->add_idread(id);
@@ -39,13 +39,21 @@ Color::Color(uint32_t compressed_array_size, string compressed_array, uint32_t n
     this->set_nb_elem_last(0);
 }
 
+Color::Color(zstr::ifstream& file){
+    file.read((char*)&this->compressed_array_size, sizeof(uint32_t));
+    file.read((char*)&this->compressed_array[0], this->compressed_array_size);  
+    file.read((char*)&this->nb_occ, sizeof(uint32_t));
+    this->set_nb_elem_last(0);
+}
+
+
 
 bool Color::operator ==(const Color& c){
     bool equal = true;
     uint i = 0;
 
     while(!equal && i<16){
-        if(this->last_id_reads[i] != c.last_id_reads[i]){
+        if(this->get_vect_ireads()[i] != c.last_id_reads[i]){
             equal = false;
         }
         i++;
@@ -53,7 +61,7 @@ bool Color::operator ==(const Color& c){
     i = 0;
     if(equal){
         while(!equal && i<compressed_array_size){
-            if(this->compressed_array[i] != c.compressed_array[i]){
+            if(this->get_compressed_array()[i] != c.compressed_array[i]){
                 equal = false;
             }
         i++;
@@ -117,19 +125,19 @@ bool Color::decremente_occurence(){
 
 void Color::add_idread(iread id){
     // Si le buffer est plein, on le vide dans la liste compressee
-    if(this->nb_elem_last == 16){
+    if(this->get_nb_elem_last()== 16){
         vector<iread> uncompressed_vector = this->get_vect_ireads();
         //CHANGMENT COMPRESSED LIST
         this->compressed_array = compress_color(uncompressed_vector);
         // CHANGEMENT SIZE
-        this->compressed_array_size += 16;
+        this->compressed_array_size += this->get_nb_elem_last();
         this->nb_elem_last = 0;
         // CHANGEMENT NB_OCC
-        this->nb_occ = 1;
     }
     // Dans tous les cas, on ajoute un element a la derniere place du buffer
     this->last_id_reads[this->get_nb_elem_last()] = id;
-    this->nb_elem_last++;
+    this->set_nb_elem_last(this->get_nb_elem_last());
+    this->nb_occ = 1;
 }
 
 string Color::get_compressed_array(){
@@ -170,6 +178,15 @@ string Color::get_all_compressed() {
     // Bastien : on pourrait ajouter aussi dans le string, le nombre d'élements ainsi que l'occurrence comme ça on n'aurait plus qu'un string à sérialiser et il faudrait faire un constructeur de Color qui prend ce string et créer la couleur correspondante.
 }
 
+void Color::final_compression(){
+        vector<iread> uncompressed_vector = this->get_vect_ireads();
+        //CHANGMENT COMPRESSED LIST
+        this->compressed_array = compress_color(uncompressed_vector);
+        // CHANGEMENT SIZE
+        this->compressed_array_size += this->get_nb_elem_last();
+        this->nb_elem_last = 0;
+}
+
 // Color::Color(string compressed_color){
 //     // récupère le string correspondant au vecteur compressed, le nombre d'éléments ainsi que l'occurence et met les variables de classe à jour en mettant le buffer (last_id_reads) à vide (on n'aura plus un multiple de 16 pour le compressed_array mais je ne pense pas que ce soit grave).
 // }
@@ -177,14 +194,15 @@ string Color::get_all_compressed() {
 
 // Serialization, deserialization
 
-void Color::serialize_color(icolor idcolor, string& output_file){
-    zstr::ofstream file(output_file);
+void Color::serialize_color(icolor idcolor, zstr::ofstream& file){
     file.write((char*) &(idcolor), sizeof(icolor));
+    file.write((char*) (this->get_compressed_array_size()), sizeof(uint32_t));
     file.write((char*) &(this->get_compressed_array()[0]), sizeof(this->get_compressed_array_size()));
     file.write((char*) (this->get_nb_occ()), sizeof(uint32_t));
-    file.write((char*) (this->get_compressed_array_size()), sizeof(uint32_t));
     file.close();
 }
+
+
 
 
 

@@ -5,11 +5,10 @@ CFLAGS_DELTA= -Ofast -std=c++17 -Wall -w -march=native
 LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -lz -fopenmp
 
 PREXEC = turboPFor_compile
-EXEC = k2r_index k2r_query k2r_stat
-OBJ = utils.o index_color.o Decycling.o
-OBJ_INDEX = k2r_index.o utils.o index_color.o Decycling.o TurboPFor-Integer-Compression/libic.a
-OBJ_QUERY = k2r_query.o utils.o index_color.o Decycling.o TurboPFor-Integer-Compression/libic.a
-OBJ_STAT = k2r_stat.o utils.o index_color.o Decycling.o  TurboPFor-Integer-Compression/libic.a
+EXEC = k2r_index k2r_query
+OBJ = utils.o index_color.o Decycling.o color.o
+OBJ_INDEX = k2r_index.o utils.o index_color.o color.o Decycling.o TurboPFor-Integer-Compression/libic.a
+OBJ_QUERY = k2r_query.o utils.o index_color.o color.o Decycling.o TurboPFor-Integer-Compression/libic.a
 OBJ_TEST_COLOR = color.o test_colors.o
 
 all :  $(EXEC)
@@ -23,16 +22,10 @@ k2r_index : $(OBJ_INDEX)
 k2r_query : $(OBJ_QUERY)
 	$(CC) -o k2r_query $^ $(LDFLAGS)
 
-k2r_stat : $(OBJ_STAT)
-	$(CC) -o k2r_stat $^ $(LDFLAGS)
-
 k2r_index.o: sources/k2r_index.cpp headers/MinimizerLister.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 k2r_query.o: sources/k2r_query.cpp
-	$(CC) -o $@ -c $< $(CFLAGS)
-
-k2r_stat.o: sources/k2r_stat.cpp
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 utils.o: sources/utils.cpp headers/utils.h

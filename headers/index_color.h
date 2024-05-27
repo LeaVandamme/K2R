@@ -57,11 +57,6 @@ class Index_color{
         void serialize_colormap(string& output_file);
         void deserialize_colormap(string& input_file);
 
-        Color create_color(iread id_read);
-        Color create_color(Color& existing_color, iread id_read);
-
-        string compress_color(vector<iread>& to_compress);
-        vector<iread> decompress_color(Color& to_decompress);
         void add_color(color_map& color_map, const Color& color, const icolor color_id);
         void incremente_color(color_map& colormap, icolor color_id);
         void decremente_color(color_map& colormap, icolor color_id);

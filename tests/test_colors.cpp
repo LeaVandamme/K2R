@@ -6,12 +6,8 @@ using namespace std;
 int main(int argc, char *argv[]){
     cout << "Test Color" << endl;
 
-    // compress_color
-    // decompress_color
     cout << "####### " << "Compress/Decompress" << endl;
     vector<iread> v = {1,2,3,4,5,6,7,9};
-    // vector<iread> v = {2,3,4,5,6,7,8,10};
-    // vector<iread> v = {100,254,1566,2000};
     string s = compress_color(v);
     vector<iread> w = decompress_color(s,v.size());
     for (auto i : v) {
@@ -72,6 +68,8 @@ int main(int argc, char *argv[]){
     cout << "####### " << "Test ==" << endl;
 
     Color g = Color(16,compressed,1);
+    cout << f << endl;
+    cout << g << endl;
     if(f == g){
         cout << "ok" << endl;
     }
@@ -79,17 +77,56 @@ int main(int argc, char *argv[]){
         cout << "bug !=" << endl;
     }
 
+    f.add_idread(32);
+    cout << f << endl;
+    cout << g << endl;
+    if(f == g){
+        cout << "Bug ==" << endl;
+    }
+    else{
+        cout << "ok" << endl;
+    }
+
 
     cout << "####### " << "Test !=" << endl;
 
-    vector<uint32_t> not_compressed2 = {0,1,2,4,5,6,7,8,9,10,11,12,13,14,58};
-    string compressed2 = compress_color(not_compressed2);
-    Color h = Color(16,compressed2,1);
-    if(f != h){
+    Color h = Color(16,compressed,1);
+    cout << g << endl;
+    cout << h << endl;
+    if(g != h){
+        cout << "bug !=" << endl;
+    }
+    else{
+        cout << "ok" << endl;
+    }
+
+    h.add_idread(32);
+    cout << h << endl;
+    cout << g << endl;
+    if(h == g){
+        cout << "Bug !=" << endl;
+    }
+    else{
+        cout << "ok" << endl;
+    }
+
+    cout << "####### " << "Serialization/Deserialization" << endl;
+
+    string filename = "test_serialization.bin";
+    zstr::ofstream file(filename);
+    uint64_t id;
+    g.serialize_color(16, file);
+
+    zstr::ifstream fileout(filename);
+    fileout.read((char*)&id, sizeof(icolor));
+    Color deserialization = Color(fileout);
+    cout << g << endl;
+    cout << deserialization << endl;
+    if(deserialization == g){
         cout << "ok" << endl;
     }
     else{
-        cout << "bug !=" << endl;
+        cout << "bug" << endl;
     }
 
     return 0;

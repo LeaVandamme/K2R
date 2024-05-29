@@ -1,4 +1,4 @@
-CC = g++
+CC = g++-12
 
 CFLAGS= -Ofast -std=c++17 -Wall  -w -march=native -fopenmp -flto
 CFLAGS_DELTA= -Ofast -std=c++17 -Wall -w -march=native
@@ -6,7 +6,7 @@ LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -l
 
 PREXEC = turboPFor_compile
 EXEC = k2r_index k2r_query
-OBJ = utils.o index_color.o Decycling.o color.o
+OBJ = utils.o index_color.o Decycling.o color.o test_colors.o
 OBJ_INDEX = k2r_index.o utils.o index_color.o color.o Decycling.o TurboPFor-Integer-Compression/libic.a
 OBJ_QUERY = k2r_query.o utils.o index_color.o color.o Decycling.o TurboPFor-Integer-Compression/libic.a
 OBJ_TEST_COLOR = color.o test_colors.o
@@ -52,5 +52,4 @@ clean:
 rebuild: clean $(EXEC)
 
 test:
-	./k2r_index -r example/reads/reads.fasta -b example/output/output_binary -s 26
-	./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -t 1 -r 0.2
+	./k2r_index -r example/reads/reads_test.fasta -b example/output/output_binary -s 26 --min-ab 1

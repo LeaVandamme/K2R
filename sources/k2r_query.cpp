@@ -6,9 +6,6 @@
 #include <math.h>
 #include <typeinfo>
 #include <getopt.h>
-// #include "../BitMagic/src/bm.h"
-// #include "../BitMagic/src/bmundef.h"
-// #include "../BitMagic/src/bmsparsevec.h"
 #include "../headers/index_color.h"
 #include "../headers/utils.h"
 #include "../headers/MinimizerLister.h"

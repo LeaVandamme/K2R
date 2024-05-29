@@ -155,7 +155,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         vect_current_read_color.clear();
                         minimizer_list.clear();
                     }
-                    uint64_t num_read = global_num_read;                   
+                    uint64_t num_read = global_num_read;
                     if (ligne.size() > 10) {
                         #pragma omp single 
                         {
@@ -170,9 +170,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             Color previous_color;
                             mmer_hash = revhash(mmer);
                             ind_to_insert = mmer_hash&size_vect_mask;
-                            //cout << ind_to_insert % segment_size << endl;
                             if(bf_bool[ind_to_insert/segment_size][ind_to_insert%segment_size]) {
-                                //cout << "ttt" << endl;
                                 // IF KMER NOT IN MAP
                                 if (mmermap.find(mmer) == mmermap.end()) {
                                     color_to_verify = Color(num_read -1);
@@ -181,15 +179,17 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     auto it = find (vect_current_read_color.begin(), vect_current_read_color.end(), color_to_verify);
                                     // IF COLOR NOT IN TEMPORARY MAP
                                     if (it == vect_current_read_color.end()) {
+                                        cout << current_id_color << endl;
+                                        color_register = current_id_color;
                                         vect_current_read_color.push_back(color_to_verify);
                                         color_register = current_id_color;
                                         current_id_color++;
 
                                         #pragma omp flush(current_id_color)
                                     }
-                                    else{
+                                    /*else{
                                         color_register = current_id_color;
-                                    }
+                                    }*/
                                     omp_unset_lock(&vect_current_read_color_mutex);
                                     
                                     // ADD OR INCREMENTE COLOR
@@ -225,9 +225,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                             current_id_color++;
                                             #pragma omp flush(current_id_color)
                                         }
-                                        else{
+                                        /*else{
                                             color_register = current_id_color;
-                                        }
+                                        }*/
                                         omp_unset_lock(&vect_current_read_color_mutex);
                                         list_mofif_mmap.push_back({mmer,color_register});
                                         omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
@@ -260,12 +260,12 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             }
             fichier_scd.close();
             // COMPRESSION DU RESTE
-            uint32_t cpt(0);
-            string c_color;
             for(uint i(0); i<1024; i++){
                 color_map::iterator it = colormap[i].begin();
                 while (it != colormap[i].end()) {
+                    //cout << it->second << endl;
                     it->second.final_compression();
+                    it++;
                 }   
             }
         }
@@ -390,7 +390,6 @@ void Index_color::serialize_colormap(string& output_file){
     for(uint i(0); i<1024; i++) {
         map_size = colormap[i].size();
         file.write((char*) &(map_size), sizeof(uint32_t));
-        
         for(auto it=(colormap[i]).begin() ; it!=(colormap[i]).end() ; ++it) {
             file.write((char*) &(it->first), sizeof(icolor));
             it->second.serialize_color(it->first, file);
@@ -578,7 +577,6 @@ string Index_color::get_read_sequence(iread i) {
 }
 
 string Index_color::get_header(iread i) {
-    cout << header_line_pos.size() << endl;
     read_stream->seekg(header_line_pos[i], read_stream->beg);
     string result;
     getline(*read_stream, result);

@@ -95,14 +95,16 @@ uint32_t Color::get_nb_ireads() {
     return this->get_compressed_array_size() + this->get_nb_elem_last();
 }
 
+uint Color::get_color_deleted(){
+    return color_deleted;
+}
+
 
 
 void Color::incremente_occurence(){
     this->set_nb_occ(this->get_nb_occ()+1);
 }
 
-uint Color::color_deleted = 0;
-// return if need to delete
 bool Color::decremente_occurence(){
     this->set_nb_occ(this->get_nb_occ()-1);
     if(this->get_nb_occ() == 0) {
@@ -186,10 +188,9 @@ void Color::final_compression(){
 void Color::serialize_color(icolor idcolor, zstr::ofstream& file){
     uint32_t carraysize = this->get_compressed_array_size();
     uint32_t nbocc= this->get_nb_occ();
-    char carray = this->get_compressed_array()[0];
     file.write((char*) &(idcolor), sizeof(icolor));
     file.write((char*) &carraysize, sizeof(uint32_t));
-    file.write((char*) &(carray), sizeof(this->get_compressed_array_size()));
+    file.write((char*) &(this->get_compressed_array()[0]), this->get_compressed_array_size());
     file.write((char*) &(nbocc), sizeof(uint32_t));
 }
 
@@ -208,6 +209,7 @@ vector<iread> decompress_color(string to_decompress, uint32_t size) {
     uncompressed_vector.resize(size);
     return uncompressed_vector;
 }
+
 
 ostream &operator<<(std::ostream &os, Color &c) {
     for (iread r : c.get_vect_ireads()) {

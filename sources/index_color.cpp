@@ -1,5 +1,6 @@
 #include "../headers/index_color.h"
 #include "../headers/MinimizerLister.h"
+#include "../headers/color.h"
 
 using namespace std;
 using namespace chrono;
@@ -28,10 +29,11 @@ Index_color::Index_color(string& mmer_binary_file, string& color_binary_file){
 }
 
 
-
-uint64_t color_deleted = 0;
+uint Color::color_deleted=0;
 uint64_t total_nb_color = 0;
 uint64_t mmer_deleted = 0;
+
+
 
 
 
@@ -179,7 +181,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     auto it = find (vect_current_read_color.begin(), vect_current_read_color.end(), color_to_verify);
                                     // IF COLOR NOT IN TEMPORARY MAP
                                     if (it == vect_current_read_color.end()) {
-                                        cout << current_id_color << endl;
                                         color_register = current_id_color;
                                         vect_current_read_color.push_back(color_to_verify);
                                         color_register = current_id_color;
@@ -187,15 +188,13 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
                                         #pragma omp flush(current_id_color)
                                     }
-                                    /*else{
-                                        color_register = current_id_color;
-                                    }*/
                                     omp_unset_lock(&vect_current_read_color_mutex);
                                     
                                     // ADD OR INCREMENTE COLOR
                                     omp_set_lock(&(color_map_mutex[color_register%1024]));
                                     if (colormap[color_register%1024].find(color_register) != colormap[color_register%1024].end()){
                                         incremente_color(colormap[color_register%1024], color_register);
+                                        cout << colormap[color_register%1024][color_register] << endl;
                                     }
                                     else {
                                         add_color(colormap[color_register%1024], color_to_verify, color_register);
@@ -225,9 +224,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                             current_id_color++;
                                             #pragma omp flush(current_id_color)
                                         }
-                                        /*else{
-                                            color_register = current_id_color;
-                                        }*/
                                         omp_unset_lock(&vect_current_read_color_mutex);
                                         list_mofif_mmap.push_back({mmer,color_register});
                                         omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
@@ -263,7 +259,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             for(uint i(0); i<1024; i++){
                 color_map::iterator it = colormap[i].begin();
                 while (it != colormap[i].end()) {
-                    //cout << it->second << endl;
                     it->second.final_compression();
                     it++;
                 }   
@@ -281,7 +276,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         colormap_entries += colormap[i].size();
     }
 
-    cout << "Color deleted / Total nb color / Ratio : " << intToString(color_deleted) << " " << intToString(total_nb_color) << " " << (color_deleted/total_nb_color) << endl;
+
+    cout << "Color deleted / Total nb color / Ratio : " << intToString(Color::color_deleted) << " " << intToString(total_nb_color) << " " << (Color::color_deleted/total_nb_color) << endl;
     cout << "Number of entries in mmermap and colormap : " << intToString(mmermap.size()) << " " << intToString(colormap_entries) << endl;
     
     uint64_t somme_taille_c(0), somme_taille_colorid_cmap(0), somme_taille_colorid_mmermap(0), somme_taille_mmerid_mmermap(0);
@@ -395,6 +391,7 @@ void Index_color::serialize_colormap(string& output_file){
             it->second.serialize_color(it->first, file);
         }
     }
+    file << flush;
     file.close();
 }
 
@@ -437,7 +434,8 @@ void Index_color::add_color(color_map& color_map, const Color& color, const icol
 
 void Index_color::incremente_color(color_map& colormap, icolor color_id) {
     Color color = colormap[color_id];
-    color.set_nb_occ(color.get_nb_occ()+1);
+    uint32_t actual = color.get_nb_occ();
+    color.set_nb_occ(actual+1);
 }
 
 

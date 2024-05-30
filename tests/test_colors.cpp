@@ -113,9 +113,10 @@ int main(int argc, char *argv[]){
     cout << "####### " << "Serialization/Deserialization" << endl;
 
     string filename = "test_serialization.bin";
-    zstr::ofstream file(filename);
+    zstr::ofstream file(filename, ios::trunc);
     uint64_t id;
     g.serialize_color(16, file);
+    file.close();
 
     zstr::ifstream fileout(filename);
     fileout.read((char*)&id, sizeof(icolor));

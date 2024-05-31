@@ -102,7 +102,8 @@ uint Color::get_color_deleted(){
 
 
 void Color::incremente_occurence(){
-    this->set_nb_occ(this->get_nb_occ()+1);
+    uint32_t new_nbocc = this->get_nb_occ()+1;
+    this->set_nb_occ(new_nbocc);
 }
 
 bool Color::decremente_occurence(){

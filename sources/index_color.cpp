@@ -194,7 +194,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     omp_set_lock(&(color_map_mutex[color_register%1024]));
                                     if (colormap[color_register%1024].find(color_register) != colormap[color_register%1024].end()){
                                         incremente_color(colormap[color_register%1024], color_register);
-                                        cout << colormap[color_register%1024][color_register] << endl;
                                     }
                                     else {
                                         add_color(colormap[color_register%1024], color_to_verify, color_register);
@@ -275,6 +274,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     for(uint i(0); i<1024; i++) {
         colormap_entries += colormap[i].size();
     }
+    /*for(uint i(0); i<1024; i++) {
+        for(auto elt : colormap[i]){
+            cout << elt.second << endl;
+        }
+    }*/
 
 
     cout << "Color deleted / Total nb color / Ratio : " << intToString(Color::color_deleted) << " " << intToString(total_nb_color) << " " << (Color::color_deleted/total_nb_color) << endl;
@@ -406,7 +410,6 @@ void Index_color::deserialize_colormap(string& input_file){
     }
     else {
         icolor id;
-        Color color;
         char* ar;
         uint32_t map_size, nb_occ, compressed_array_size;
         uint nb_map(0);
@@ -433,16 +436,14 @@ void Index_color::add_color(color_map& color_map, const Color& color, const icol
 
 
 void Index_color::incremente_color(color_map& colormap, icolor color_id) {
-    Color color = colormap[color_id];
-    uint32_t actual = color.get_nb_occ();
-    color.set_nb_occ(actual+1);
+    uint32_t actual = colormap[color_id].get_nb_occ();
+    colormap[color_id].set_nb_occ(actual+1);
 }
 
 
 
 void Index_color::decremente_color(color_map& colormap, icolor color_id) {
-    Color color = colormap[color_id];
-    bool to_delete = color.decremente_occurence();
+    bool to_delete = colormap[color_id].decremente_occurence();
     if(to_delete) {
         colormap.erase(color_id);
     }

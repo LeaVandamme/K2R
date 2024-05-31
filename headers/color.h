@@ -49,6 +49,7 @@ class Color{
         uint32_t get_compressed_array_size();
         string get_all_compressed();
         uint32_t get_nb_elem_last();
+        uint get_color_deleted();
 
         void set_nb_occ(uint32_t nb_occ);
         void set_compressed_array(string c_array);

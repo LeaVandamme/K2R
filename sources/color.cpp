@@ -116,20 +116,22 @@ bool Color::decremente_occurence(){
 }
 
 void Color::add_idread(iread id){
-    // Si le buffer est plein, on le vide dans la liste compressee
-    if(this->get_nb_elem_last()== 16){
-        vector<iread> uncompressed_vector = this->get_vect_ireads();
-        //CHANGMENT COMPRESSED LIST
-        this->compressed_array = compress_color(uncompressed_vector);
-        // CHANGEMENT SIZE
-        this->compressed_array_size += this->get_nb_elem_last();
-        this->nb_elem_last = 0;
-        // CHANGEMENT NB_OCC
+    if(id != this->last_id_reads[this->nb_elem_last]){
+        // Si le buffer est plein, on le vide dans la liste compressee
+        if(this->get_nb_elem_last()== 16){
+            vector<iread> uncompressed_vector = this->get_vect_ireads();
+            //CHANGMENT COMPRESSED LIST
+            this->compressed_array = compress_color(uncompressed_vector);
+            // CHANGEMENT SIZE
+            this->compressed_array_size += this->get_nb_elem_last();
+            this->nb_elem_last = 0;
+            // CHANGEMENT NB_OCC
+        }
+        // Dans tous les cas, on ajoute un element a la derniere place du buffer
+        this->last_id_reads[this->get_nb_elem_last()] = id;
+        this->set_nb_elem_last(this->get_nb_elem_last()+1);
+        this->nb_occ = 1;
     }
-    // Dans tous les cas, on ajoute un element a la derniere place du buffer
-    this->last_id_reads[this->get_nb_elem_last()] = id;
-    this->set_nb_elem_last(this->get_nb_elem_last()+1);
-    this->nb_occ = 1;
 }
 
 string Color::get_compressed_array(){

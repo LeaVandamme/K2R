@@ -204,12 +204,18 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     // ADD OR MODIFY IN KMER MAP
                                     list_mofif_mmap.push_back({mmer,color_register});
                                 }
-                                else {                             
+                                else {                          
                                     icolor previous_icolor(mmermap.at(mmer));
+                                    if((/*mmer == 932166900 ||*/ mmer == 1012840672)){
+                                        cout << previous_icolor << ";" << colormap[previous_icolor%1024][previous_icolor] << endl;
+                                    }   
                                     omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
                                     previous_color = colormap[previous_icolor%1024][previous_icolor];
                                     omp_unset_lock(&(color_map_mutex[previous_icolor%1024]));
                                     color_to_verify = Color(previous_color, num_read-1);
+                                    if((/*mmer == 932166900 ||*/ mmer == 1012840672)){
+                                        cout << "color to verify" << ";" << color_to_verify << endl;
+                                    }  
                                     // IF THE COLOR NEED TO BE CHANGED
                                     //THIS IF IS NOT NEEDED IF MMER DUPLICATES ARE REMOVED
                                     if(color_to_verify != previous_color) {
@@ -219,10 +225,15 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                         icolor color_register;
                                         if (it == vect_current_read_color.end()) {
                                             vect_current_read_color.push_back(color_to_verify);
+                                            cout << vect_current_read_color.size() << " " << current_id_color << endl;
                                             color_register = current_id_color;
                                             current_id_color++;
                                             #pragma omp flush(current_id_color)
                                         }
+                                        else{
+                                            color_register = previous_icolor;
+                                        }
+                                        
                                         omp_unset_lock(&vect_current_read_color_mutex);
                                         list_mofif_mmap.push_back({mmer,color_register});
                                         omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
@@ -231,6 +242,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                         // ADD OR INCREMENTE COLOR IN MAP
                                         omp_set_lock(&(color_map_mutex[color_register%1024]));
                                         if (colormap[color_register%1024].find(color_register) != colormap[color_register%1024].end()){
+                                            if((/*mmer == 932166900 ||*/ mmer == 1012840672)){
+                                            cout << "insert " << color_register << " ; " << colormap[color_register%1024][color_register] << endl;
+                                            }
                                             incremente_color(colormap[color_register%1024], color_register);
                                         }
                                         else {
@@ -276,9 +290,15 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     }
     /*for(uint i(0); i<1024; i++) {
         for(auto elt : colormap[i]){
-            cout << elt.second << endl;
+            cout << elt.first << " : "  << elt.second << endl;
         }
     }*/
+    for(auto elt : mmermap){
+        if(elt.second == 117){
+            cout << elt.first << " : "  << elt.second << endl;
+        }
+            
+    }
 
 
     cout << "Color deleted / Total nb color / Ratio : " << intToString(Color::color_deleted) << " " << intToString(total_nb_color) << " " << (Color::color_deleted/total_nb_color) << endl;

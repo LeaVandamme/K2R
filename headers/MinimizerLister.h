@@ -206,7 +206,7 @@ class minimizerLister{
         uint32_t old_minimizer, minimizer, last_minimizer;
         old_minimizer = minimizer = M_mask;
         uint64_t last_position(0);
-        // FOREACH KMERtypedef string color;
+        // FOREACH KMER
         uint64_t seq(str2num(ref.substr(position_begin, K)));
         uint64_t position_min;
         uint64_t min_seq = (str2num(ref.substr(position_begin+K - M, M)));
@@ -235,6 +235,9 @@ class minimizerLister{
                     position_min += (i + 1);
                 }
             }
+/*             if(old_minimizer == 1012840672){
+                cout << ref.substr(position_begin, K) << endl;
+            } */
             // COMPUTE KMER MINIMIZER
             if(last_minimizer != old_minimizer){
                 result.push_back(old_minimizer);

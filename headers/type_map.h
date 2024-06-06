@@ -9,6 +9,7 @@ using namespace std;
 
 typedef ankerl::unordered_dense::map<mmer, icolor> mmer_map;
 typedef ankerl::unordered_dense::map<icolor, Color> color_map;
+typedef ankerl::unordered_dense::map<Color, icolor> color_icolor_map;
 
 
 #endif

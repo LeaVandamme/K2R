@@ -26,8 +26,6 @@
 using namespace std;
 
 
-// Attributs
-
 class Index_color{
 
     public:

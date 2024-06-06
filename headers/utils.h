@@ -15,5 +15,6 @@ uint64_t getMemorySelfMaxUsed ();
 string intToString(uint64_t num);
 uint32_t revhash(uint32_t x);
 uint32_t unrevhash(uint32_t x);
+uint64_t xorshift64(uint64_t seed) ;
 
 #endif

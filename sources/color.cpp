@@ -40,14 +40,17 @@ Color::Color(uint32_t compressed_array_size, string compressed_array, uint32_t n
 
 Color::Color(zstr::ifstream& file){
     file.read((char*)&this->compressed_array_size, sizeof(uint32_t));
-    file.read((char*)&this->compressed_array[0], this->compressed_array_size);  
+    string compressed_array;
+    file.read((char*)&compressed_array[0], this->get_compressed_array_size());
+    compressed_array = this->compressed_array;
+    cout << "deserialize : " << compressed_array << " " << this->get_compressed_array_size() << endl;  
     file.read((char*)&this->nb_occ, sizeof(uint32_t));
     this->set_nb_elem_last(0);
 }
 
 
 
-bool Color::operator ==(const Color& c){
+bool Color::operator ==(const Color& c) const {
     bool equal = true;
     uint i = 0;
 
@@ -64,7 +67,9 @@ bool Color::operator ==(const Color& c){
     return equal;
 }
 
-bool Color::operator !=(const Color& c){
+
+
+bool Color::operator !=(const Color& c)const{
     bool equal = true;
     uint i = 0;
 
@@ -82,7 +87,7 @@ bool Color::operator !=(const Color& c){
 }
 
 
-vector<iread> Color::get_vect_ireads(){
+vector<iread> Color::get_vect_ireads() const{
     vector<iread> uncompressed_vector= decompress_color(this->compressed_array, this->compressed_array_size);
     for(uint i = 0; i<this->nb_elem_last; i++){
         uncompressed_vector.push_back(this->last_id_reads[i]);
@@ -91,11 +96,11 @@ vector<iread> Color::get_vect_ireads(){
 }
 
 
-uint32_t Color::get_nb_ireads() {
+uint32_t Color::get_nb_ireads()const{
     return this->get_compressed_array_size() + this->get_nb_elem_last();
 }
 
-uint Color::get_color_deleted(){
+uint Color::get_color_deleted()const{
     return color_deleted;
 }
 
@@ -134,23 +139,23 @@ void Color::add_idread(iread id){
     }
 }
 
-string Color::get_compressed_array(){
+string Color::get_compressed_array()const{
     return this->compressed_array; 
 }
 
-uint32_t Color::get_compressed_array_size(){
+uint32_t Color::get_compressed_array_size()const{
     return this->compressed_array_size;
 }
 
-uint32_t Color::get_nb_occ(){
+uint32_t Color::get_nb_occ() const{
     return this->nb_occ;
 }
 
-uint32_t Color::get_nb_elem_last(){
+uint32_t Color::get_nb_elem_last() const{
     return this->nb_elem_last;
 }
 
-void Color::set_nb_occ(uint32_t nb_occ){
+void Color::set_nb_occ(uint32_t nb_occ) {
     this->nb_occ = nb_occ;
 }
 
@@ -166,7 +171,7 @@ void Color::set_compressed_array_size(uint32_t size){
     this->compressed_array_size = size;
 }
 
-string Color::get_all_compressed() {
+string Color::get_all_compressed() const {
     vector<iread> uncompressed_vector = this->get_vect_ireads();
     return compress_color(uncompressed_vector);
     // Bastien : on pourrait ajouter aussi dans le string, le nombre d'élements ainsi que l'occurrence comme ça on n'aurait plus qu'un string à sérialiser et il faudrait faire un constructeur de Color qui prend ce string et créer la couleur correspondante.
@@ -191,9 +196,11 @@ void Color::final_compression(){
 void Color::serialize_color(icolor idcolor, zstr::ofstream& file){
     uint32_t carraysize = this->get_compressed_array_size();
     uint32_t nbocc= this->get_nb_occ();
+    string compressed_array = this->get_compressed_array();
     file.write((char*) &(idcolor), sizeof(icolor));
     file.write((char*) &carraysize, sizeof(uint32_t));
-    file.write((char*) &(this->get_compressed_array()[0]), this->get_compressed_array_size());
+    cout << "serialize :" << compressed_array<< endl;
+    file.write((char*) &(compressed_array[0]), this->get_compressed_array_size());
     file.write((char*) &(nbocc), sizeof(uint32_t));
 }
 

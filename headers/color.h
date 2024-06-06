@@ -11,6 +11,7 @@
 #include <math.h>
 #include <cmath>
 #include <thread>
+#include <functional>
 #include <unistd.h>
 #include <bits/stdc++.h>
 #include <time.h>
@@ -18,6 +19,7 @@
 #include "type.h"
 #include "../include/zstr.hpp"
 #include "../headers/utils.h"
+#include "../include/unordered_dense.h"
 #include "../TurboPFor-Integer-Compression/include/ic.h"
 
 
@@ -26,7 +28,7 @@ using namespace std;
 class Color{
 
     public:
-        uint32_t compressed_array_size; // FUSIONNER NB_ELEM_LAST ET ÇA
+        uint32_t compressed_array_size;
         string compressed_array;
         uint32_t nb_occ;
         iread nb_elem_last;
@@ -40,16 +42,16 @@ class Color{
         Color(uint32_t compressed_array_size, string compressed_array, uint32_t nb_occ);
         Color(zstr::ifstream& file);
 
-        bool operator ==(const Color& c);
-        bool operator !=(const Color& c);
+        bool operator ==(const Color& c) const;
+        bool operator !=(const Color& c) const;
 
-        uint32_t get_nb_occ();
-        uint32_t get_nb_ireads();
-        string get_compressed_array();
-        uint32_t get_compressed_array_size();
-        string get_all_compressed();
-        uint32_t get_nb_elem_last();
-        uint get_color_deleted();
+        uint32_t get_nb_occ()const;
+        uint32_t get_nb_ireads()const;
+        string get_compressed_array()const;
+        uint32_t get_compressed_array_size()const;
+        string get_all_compressed() const;
+        uint32_t get_nb_elem_last()const;
+        uint get_color_deleted()const;
 
         void set_nb_occ(uint32_t nb_occ);
         void set_compressed_array(string c_array);
@@ -59,7 +61,7 @@ class Color{
         void add_idread(iread id);
         void incremente_occurence();
         bool decremente_occurence(); // VOIR CA
-        vector<iread> get_vect_ireads();
+        vector<iread> get_vect_ireads() const;
         void final_compression();
 
         void serialize_color(icolor idcolor, zstr::ofstream& output_file);
@@ -68,5 +70,19 @@ class Color{
 string compress_color(vector<iread>& to_compress);
 vector<iread> decompress_color(string to_decompress, uint32_t size);
 ostream &operator<<(std::ostream &os, Color &c);
+
+template <>
+struct ankerl::unordered_dense::hash<Color> {
+    using is_avalanching = void;
+
+    std::size_t operator()(Color const& c) const noexcept {
+        uint64_t hash = std::hash<std::string>{}(c.compressed_array);
+        for(uint i = 0; i<c.nb_elem_last;i++){
+            hash ^= xorshift64(c.last_id_reads[i]);
+        }
+        return hash;
+    }
+};
+
 
 #endif

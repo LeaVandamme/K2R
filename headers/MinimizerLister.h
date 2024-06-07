@@ -235,9 +235,6 @@ class minimizerLister{
                     position_min += (i + 1);
                 }
             }
-            /*if(old_minimizer == 540712768){
-                cout << ref.substr(position_begin, K) << endl;
-            }*/
             // COMPUTE KMER MINIMIZER
             if(last_minimizer != old_minimizer){
                 result.push_back(old_minimizer);

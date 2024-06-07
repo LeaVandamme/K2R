@@ -32,6 +32,7 @@ class Color{
         string compressed_array;
         uint32_t nb_occ;
         iread nb_elem_last;
+        uint32_t nb_elem_compressed;
         uint32_t last_id_reads[16] = {};
         static uint color_deleted;
 
@@ -39,7 +40,7 @@ class Color{
         Color(iread id);
         Color(const Color& color);
         Color(const Color& color, iread id);
-        Color(uint32_t compressed_array_size, string compressed_array, uint32_t nb_occ);
+        Color(uint32_t compressed_array_size, string compressed_array, uint32_t nb_occ, uint32_t nb_elem_compressed);
         Color(zstr::ifstream& file);
 
         bool operator ==(const Color& c) const;
@@ -52,11 +53,13 @@ class Color{
         string get_all_compressed() const;
         uint32_t get_nb_elem_last()const;
         uint get_color_deleted()const;
+        uint32_t get_nb_elem_compressed() const;
 
         void set_nb_occ(uint32_t nb_occ);
         void set_compressed_array(string c_array);
         void set_compressed_array_size(uint32_t size);
         void set_nb_elem_last(uint32_t nb_elem_last);
+        void set_nb_elem_compressed(uint32_t nb_elem_compressed);
 
         void add_idread(iread id);
         void incremente_occurence();

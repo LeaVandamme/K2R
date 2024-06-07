@@ -251,8 +251,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             for(uint i(0); i<1024; i++){
                 color_map::iterator it = colormap[i].begin();
                 while (it != colormap[i].end()) {
-                    it->second.final_compression();
-                    //cout << it->second << endl;
+                    it->second.final_compression();                    
                     it++;
                 }   
             }
@@ -381,7 +380,6 @@ void Index_color::serialize_colormap(string& output_file){
         file.write((char*) &(map_size), sizeof(uint32_t));
         for(auto it=(colormap[i]).begin() ; it!=(colormap[i]).end() ; ++it) {
             it->second.serialize_color(it->first, file);
-            //cout << it->second << endl;
         }
     }
     file.close();

@@ -22,7 +22,7 @@ Index_color::Index_color(string& fastaFilename,uint16_t kmerLength, uint16_t mme
 Index_color::Index_color(string& mmer_binary_file, string& color_binary_file){
     auto start_deserialize = high_resolution_clock::now();
     deserialize_mmermap(mmer_binary_file);
-    deserialize_colormap(color_binary_file);   
+    deserialize_colormap(color_binary_file);
     auto end_deserialize = high_resolution_clock::now();
     auto deserialize = duration_cast<nanoseconds>(end_deserialize - start_deserialize);
     cout << "Deserialization takes " << (float)deserialize.count() << " ns." << endl;
@@ -57,9 +57,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             omp_init_lock(&(nutex[i]));
         }
         // BLOOM FILTER
-        #pragma omp parallel num_threads(num_thread) 
-        {   
-            string ligne; 
+        #pragma omp parallel num_threads(num_thread)
+        {
+            string ligne;
             minimizerLister ml = minimizerLister(k, m);
             vector<mmer> minimizer_list_tmp;
             while(!fichier.eof()) {
@@ -105,7 +105,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         bf_bool[i][ii] = true;
                     }
                 }
-                else {                    
+                else {
                     if(counting_bf[i*segment_size+ii] >= min_ab and counting_bf[i*segment_size+ii]<max_ab) {
                         bf_bool[i][ii] = true;
                     }
@@ -123,17 +123,17 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         if(fichier_scd) {
             icolor current_id_color = 1;
             color_icolor_map map_current_read_color;
-            string ligne; 
+            string ligne;
             vector<mmer> minimizer_list;
             bool eof = false;
-            #pragma omp parallel num_threads(num_thread) 
+            #pragma omp parallel num_threads(num_thread)
             {
                 minimizerLister ml = minimizerLister(k, m);
                 vector<pair<mmer,icolor>> list_mofif_mmap;
                 vector<mmer> minimizer_list_tmp;
                 while(not eof) {
                     #pragma omp barrier
-                    #pragma omp single 
+                    #pragma omp single
                     {
                         ligne.clear();
                         getline(fichier_scd,ligne);
@@ -156,7 +156,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     }
                     uint64_t num_read = global_num_read;
                     if (ligne.size() > 10) {
-                        #pragma omp single 
+                        #pragma omp single
                         {
                             minimizer_list = ml.get_minimizer_list(ligne);
                             sortAndRemoveDuplicates(minimizer_list);
@@ -197,7 +197,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     // ADD OR MODIFY IN KMER MAP
                                     list_mofif_mmap.push_back({mmer,color_register});
                                 }
-                                else {                    
+                                else {
                                     icolor previous_icolor(mmermap.at(mmer));
                                     omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
                                     previous_color = colormap[previous_icolor%1024][previous_icolor];
@@ -214,7 +214,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                             current_id_color++;
                                             #pragma omp flush(current_id_color)
                                         }
-                                            
+
                                         omp_unset_lock(&map_current_read_color_mutex);
                                         color_register = result.first->second;
                                         list_mofif_mmap.push_back({mmer,color_register});
@@ -236,7 +236,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 }
                             }
                         }
-                        #pragma omp critical (mmap) 
+                        #pragma omp critical (mmap)
                         {
                             for(uint32_t imm(0);imm<list_mofif_mmap.size();imm++) {
                                 mmermap[list_mofif_mmap[imm].first] = list_mofif_mmap[imm].second;
@@ -251,9 +251,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             for(uint i(0); i<1024; i++){
                 color_map::iterator it = colormap[i].begin();
                 while (it != colormap[i].end()) {
-                    it->second.final_compression();                    
+                    it->second.final_compression();
                     it++;
-                }   
+                }
             }
         }
         else {
@@ -262,7 +262,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         fichier.close();
     }
 
-    
+
     uint64_t colormap_entries(0);
     for(uint i(0); i<1024; i++) {
         colormap_entries += colormap[i].size();
@@ -271,7 +271,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
     cout << "Color deleted / Total nb color / Ratio : " << intToString(Color::color_deleted) << " " << intToString(total_nb_color) << " " << (Color::color_deleted/total_nb_color) << endl;
     cout << "Number of entries in mmermap and colormap : " << intToString(mmermap.size()) << " " << intToString(colormap_entries) << endl;
-    
+
     uint64_t somme_taille_c(0), somme_taille_colorid_cmap(0), somme_taille_colorid_mmermap(0), somme_taille_mmerid_mmermap(0);
     for(uint i(0); i<1024; i++) {
         color_map::iterator it = colormap[i].begin();
@@ -325,7 +325,7 @@ void Index_color::serialize_mmermap(string& output_file){
         file.write((char *) &(it->first), sizeof(mmer));
         file.write((char *) &(it->second), sizeof(icolor));
     }
-    uint32_t  read_line_pos_size(read_line_pos.size()); 
+    uint32_t  read_line_pos_size(read_line_pos.size());
     file.write((char*) &read_line_pos_size, sizeof(read_line_pos_size));
     file.write((char *) &(read_line_pos[0]), sizeof(uint64_t)*read_line_pos.size() ) ;
     file.close();
@@ -364,7 +364,7 @@ void Index_color::deserialize_mmermap(string& input_file){
             mmermap[mmer] = id;
         }
         file.close();
-        uint32_t  read_line_pos_size; 
+        uint32_t  read_line_pos_size;
         file.read((char*) &read_line_pos_size, sizeof(read_line_pos_size));
         read_line_pos.resize(read_line_pos_size);
         file.read((char *) &(read_line_pos[0]), sizeof(uint64_t)*read_line_pos_size);
@@ -378,6 +378,7 @@ void Index_color::serialize_colormap(string& output_file){
     for(uint i(0); i<1024; i++) {
         map_size = colormap[i].size();
         file.write((char*) &(map_size), sizeof(uint32_t));
+        cout << i << "\t" << map_size << endl;
         for(auto it=(colormap[i]).begin() ; it!=(colormap[i]).end() ; ++it) {
             it->second.serialize_color(it->first, file);
         }
@@ -388,7 +389,8 @@ void Index_color::serialize_colormap(string& output_file){
 
 
 void Index_color::deserialize_colormap(string& input_file){
-    colormap =new color_map[1024];
+    // this->colormap = new color_map[1024];
+    ankerl::unordered_dense::map<icolor, Color*>* colmap = new ankerl::unordered_dense::map<icolor, Color*>[1024];
     zstr::ifstream file(input_file, ios::in);
     if(!file) {
         cout << "Cannot open file!" << endl;
@@ -397,14 +399,26 @@ void Index_color::deserialize_colormap(string& input_file){
     else {
         icolor id;
         uint32_t map_size;
-        Color c;
+        Color* c;
         for(uint i(0);i<1024;i++) {
+            // colmap[i] = new ankerl::unordered_dense::map<icolor, Color*>();
             if(file.read((char*)&map_size, sizeof(uint32_t))) {
+                cout << "Start:\t" << i << "\t" << map_size << endl;
+                // free(this-colormap[i]);
                 for(uint j = 0; j<map_size; j++) {
                     file.read((char*)&id, sizeof(icolor));
-                    c = Color(file);
-                    cout << c << endl;
-                    colormap[i][id] = c;
+                    cout << "######" << i << '\t' << j << "\t" << id << endl;
+                    c = new Color(file);
+                    cout << *c << endl;
+                    // cout << map_size << endl;
+                    // cout << this->colormap[i][id] << endl;
+                    // this->colormap[i][id] = c;
+                    // colormap[i].emplace(id,c);
+                    cout << i << endl;
+                    // colmap[i].emplace(id, c);
+                    colmap[i][id] = c;
+                    cout << i << endl;
+                    cout << "ok" << endl;
                 }
             }
         }
@@ -451,24 +465,24 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         vector<string> lines;
         vector<mmer>  global_ml;
         minimizerLister ml = minimizerLister(k, m);
-        #pragma omp parallel num_threads(num_thread) 
+        #pragma omp parallel num_threads(num_thread)
         {
             vector<mmer>  local_ml;
             string ligne;
             while(!fichier.eof()) {
 
-                #pragma omp critical (queryfasta) 
+                #pragma omp critical (queryfasta)
                 {
                     getline(fichier,ligne);
                     if(ligne[0] != '>'){
                         lines.push_back(ligne);
                     }
-                    
+
                 }
                 vect_reads.clear();
                 if (ligne[0] != '>' && !ligne.empty()) {
                     local_ml = ml.get_minimizer_list(ligne);
-                    #pragma omp critical (globalml) 
+                    #pragma omp critical (globalml)
                     {
                         global_ml.insert(global_ml.end(), local_ml.begin(), local_ml.end());
                     }
@@ -477,7 +491,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         }
         fichier.close();
         sortAndRemoveDuplicates(global_ml);
-        
+
         vect_reads = query_sequence_fp(mmermap, colormap, global_ml, threshold,lines,num_thread);
         sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
         for(auto s : vect_reads) {
@@ -497,13 +511,13 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
     ifstream fichier(file_in, ios::in);
     uint cpt(0);
     string out = "";
-    
-    #pragma omp parallel num_threads(num_thread) 
+
+    #pragma omp parallel num_threads(num_thread)
     {
         if(fichier) {
             string ligne;
             while(!fichier.eof()) {
-                #pragma omp critical (queryfof) 
+                #pragma omp critical (queryfof)
                 {
                     getline(fichier,ligne);
                 }
@@ -527,7 +541,7 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
 vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color_map* colormap, const vector<mmer> minlist, double threshold, uint16_t num_thread){
     ankerl::unordered_dense::map<iread, uint32_t> id_to_count;
     vector<iread> res;
-    #pragma omp parallel num_threads(num_thread) 
+    #pragma omp parallel num_threads(num_thread)
     {
         vector<iread> curr_ids_read;
         #pragma omp for
@@ -536,7 +550,7 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
                 minimizer_match ++;
                 curr_ids_read = colormap[(mmermap[minlist[i]]%1024)][mmermap[minlist[i]]].get_vect_ireads();
                 for(auto id_read : curr_ids_read) {
-                    #pragma omp critical (id_to_count) 
+                    #pragma omp critical (id_to_count)
                     {
                         id_to_count[id_read]++;
                     }
@@ -576,8 +590,8 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
     vector<pair<string,uint32_t>> reads_to_return;
     minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
-    
-    #pragma omp parallel num_threads(num_thread) 
+
+    #pragma omp parallel num_threads(num_thread)
     {
         vector<kmer> kmers_read;
         string read_seq;
@@ -587,7 +601,7 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
             kmers_read=ml.get_kmer_list(read_seq);
             uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
             if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
-                #pragma omp critical 
+                #pragma omp critical
                 {
                     reads_to_return.push_back({read_seq,reads_to_verify[i]});
                 }

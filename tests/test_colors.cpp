@@ -141,5 +141,26 @@ int main(int argc, char *argv[]){
         cout << "bug" << endl;
     }
 
+    vector<uint32_t> not_compressed2 = {};
+
+    for (uint32_t ii = 0;ii<257;ii++) {
+        not_compressed2.push_back(3*ii+30);
+    }
+
+    for (uint32_t j : not_compressed2) {
+        cout << j << " ";
+    }
+    cout << endl;
+
+    string compressed2 = compress_color(not_compressed2);
+
+    cout << "size" << compressed2.size() << endl ;
+
+    Color k = Color(compressed2.size(),compressed2,1, not_compressed2.size());
+
+    cout << k << endl;
+
+
+
     return 0;
 }

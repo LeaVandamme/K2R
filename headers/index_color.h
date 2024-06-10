@@ -22,8 +22,8 @@
 #include "../headers/color.h"
 #include "../TurboPFor-Integer-Compression/include/ic.h"
 
-
 using namespace std;
+
 
 
 class Index_color{
@@ -44,7 +44,7 @@ class Index_color{
         uint64_t offsetUpdateMinimizer;
         uint64_t minimizer_number;
         uint64_t minimizer_match;
-        
+
         Index_color(string& filename, uint16_t k, uint16_t m, uint16_t counting_bf_size, string& binary_prefix);
         Index_color(string& mmer_binary_file, string& color_binary_file);
 

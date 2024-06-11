@@ -95,6 +95,7 @@ int main(int argc, char *argv[]){
     if (argc < 2){
         PrintHelp();
     }else{
+        cout << "ON EST DANS LA QUERYYYY" << endl;
         string bin_file_mmer = binary_prefix + "_mmer.bin";
         string bin_file_color = binary_prefix + "_color.bin";
         Index_color index_color = Index_color(bin_file_mmer, bin_file_color);
@@ -108,6 +109,7 @@ int main(int argc, char *argv[]){
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);
             cout << "Querying the file takes " << (float)querying_seq.count() << " ns." << endl;
+            cout << "C'est fini pourquoi ça segfault BORDEL" << endl;
         }
         else if(fasta){
             auto start_querying_seq = high_resolution_clock::now();

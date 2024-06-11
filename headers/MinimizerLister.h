@@ -32,6 +32,10 @@ class minimizerLister{
             DS=new DecyclingSet(M);
         }
 
+        ~minimizerLister(){
+            delete DS;
+        }
+
 
 
     uint64_t rcb(uint64_t min, uint64_t n) {
@@ -204,7 +208,7 @@ class minimizerLister{
         }
         vector<mmer> result;
         uint32_t old_minimizer, minimizer, last_minimizer;
-        old_minimizer = minimizer = M_mask;
+        last_minimizer=old_minimizer = minimizer = M_mask;
         uint64_t last_position(0);
         // FOREACH KMER
         uint64_t seq(str2num(ref.substr(position_begin, K)));

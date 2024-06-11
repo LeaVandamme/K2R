@@ -1,7 +1,7 @@
-CC = g++-12
+CC = g++
 
-CFLAGS= -Ofast -std=c++17 -Wall  -w -march=native -fopenmp -flto
-CFLAGS_DELTA= -Ofast -std=c++17 -Wall -w -march=native
+CFLAGS= -Ofast -std=c++17 -Wall  -w  -fopenmp -flto
+CFLAGS_DELTA= -Ofast	 -std=c++17 -Wall -w 	
 LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -lz -fopenmp
 
 PREXEC = turboPFor_compile
@@ -52,4 +52,5 @@ clean:
 rebuild: clean $(EXEC)
 
 test:
-	./k2r_index -r example/reads/reads_test.fasta -b example/output/output_binary -s 26 --min-ab 1
+	./k2r_index -r example/reads/reads2000.fasta -b example/output/output_binary -s 26 --min-ab 1
+	./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -r 0.2

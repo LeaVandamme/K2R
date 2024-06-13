@@ -122,5 +122,6 @@ int main(int argc, char *argv[]){
             PrintHelp();
         }
     }
-    return 0;
+    
+    exit(0);
 }

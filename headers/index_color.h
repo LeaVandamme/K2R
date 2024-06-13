@@ -49,7 +49,7 @@ class Index_color{
         Index_color(string& mmer_binary_file, string& color_binary_file);
 
         ~Index_color(){
-            delete[] colormap;
+            // delete colormap;
             delete read_stream;
         }
 

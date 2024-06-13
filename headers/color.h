@@ -33,54 +33,59 @@ class Color{
         uint32_t nb_occ;
         iread nb_elem_last;
         uint32_t nb_elem_compressed;
-        uint32_t last_id_reads[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+        uint32_t last_id_reads[16];
         static uint color_deleted;
 
         Color();
         Color(iread id);
-        // Color(const Color& color);
         Color(const Color& color, iread id);
         Color(uint32_t compressed_array_size, string compressed_array, uint32_t nb_occ, uint32_t nb_elem_compressed);
         Color(zstr::ifstream& file);
         ~Color();
 
         Color& operator=(Color&& color) noexcept{
-            // cout<<"move?"<<endl;
+            // cout << "operator=( Color& color)" << endl;
             this->compressed_array_size = color.compressed_array_size;
             this->nb_elem_compressed=color.nb_elem_compressed;
             this->compressed_array = color.compressed_array;
             this->nb_occ = color.nb_occ;
             this->nb_elem_last = color.nb_elem_last;
-            for(uint i =0; i<this->nb_elem_last; i++){
+            for(uint i =0; i<16; i++){
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
+            // cout << "fin operator=(const Color& color)" << endl;
             return *this;
         } 
         
         Color& operator=(const Color& color) {
-            // cout<<"copy"<<endl;
+            // cout << "operator=(const Color& color)" << endl;
             this->compressed_array_size = color.compressed_array_size;
             this->nb_elem_compressed=color.nb_elem_compressed;
             this->compressed_array = color.compressed_array;
             this->nb_occ = color.nb_occ;
             this->nb_elem_last = color.nb_elem_last;
-            for(uint i =0; i<this->nb_elem_last; i++){
+            for(uint i =0; i<16; i++){
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
+            // cout << "fin operator=(const Color& color)" << endl;
             return *this;
         } 
 
-    //      Color(Color&& color) noexcept {
-    //     *this = std::move(color);
-    // }
 
-    // And the copy constructor
     Color(const Color& color) {
-        *this = color;
+        // cout << "Color(copy)" << endl;
+         this->compressed_array_size = color.compressed_array_size;
+    this->nb_elem_compressed=color.nb_elem_compressed;
+    this->compressed_array = color.compressed_array;
+    this->nb_occ = color.nb_occ;
+    this->nb_elem_last = color.nb_elem_last;
+    for(uint i =0; i<this->nb_elem_last; i++){
+        this->last_id_reads[i] = color.last_id_reads[i];
+    }
+        // cout << "fin Color(copy)" << endl;
     }
 
-        // Color(Color&&)=delete;
-        // Color& operator=(Color&&)=delete;
+
 
         bool operator ==(const Color& c) const;
         bool operator !=(const Color& c) const;
@@ -111,7 +116,7 @@ class Color{
 
 string compress_color(vector<iread>& to_compress);
 vector<iread> decompress_color(string to_decompress, uint32_t size);
-ostream &operator<<(std::ostream &os, Color &c);
+ostream &operator<<(std::ostream &os,const  Color &c);
 
 template <>
 struct ankerl::unordered_dense::hash<Color> {

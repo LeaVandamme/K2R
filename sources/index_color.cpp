@@ -390,7 +390,7 @@ void Index_color::serialize_colormap(string& output_file){
 void Index_color::deserialize_colormap(string& input_file){
     colormap = new color_map[1024];
     for(uint i(0);i<1024;i++){
-colormap[i].reserve(1000);
+        colormap[i].reserve(1000);
     }
     zstr::ifstream file(input_file, ios::in);
     if(!file) {
@@ -400,25 +400,27 @@ colormap[i].reserve(1000);
     else {
         icolor id;
         uint32_t map_size;
-        // Color c;
         for(uint i(0);i<1024;i++) {
             if(file.read((char*)&map_size, sizeof(uint32_t))) {
-                cout << "Start:\t" << i << "\t" << map_size << endl;
+                //cout << "Start:\t" << i << "\t" << map_size << endl;
                 for(uint j = 0; j<map_size; j++) {
+                    //cout<<"stl"<<endl;
                     file.read((char*)&id, sizeof(icolor));
-                    //cout << "######" << i << '\t' << j << "\t" << id << endl;
-                    Color c = Color(file);
-                    //cout << c << endl;
-                    //cout<<i<<endl;
-                    //cout << colormap[i].size() << endl;
-                    //cout << "avant insertion " << endl;
-                    colormap[i][id] = c;
-                    //cout << "après insertion " << endl;
-                    //cout << "ok deserialize" << endl;
+                    Color c(file);
+                    colormap[i].insert({id,c});
                 }
             }
         }
         file.close();
+        cout << colormap[540].size() << endl;
+        /*for(const auto&  elt : colormap[540]){
+            /*cout<<"begloop"<<endl;
+            cout << elt.first << endl;
+            cout << elt.second << endl;
+            cout<<"endloop"<<endl;
+        }*/
+        auto it_color = colormap[540].find(50716);
+        //cout << (it_color ==  colormap[540].end()) << endl;
     }
 }
 
@@ -427,7 +429,7 @@ colormap[i].reserve(1000);
 
 
 void Index_color::add_color(color_map& color_map, const Color& color, const icolor color_id) {
-    color_map[color_id] = color;
+    color_map.emplace(color_id,color);
 }
 
 
@@ -495,12 +497,11 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         sortAndRemoveDuplicates(global_ml);
         cout<< file_in << endl;
         vect_reads = query_sequence_fp(mmermap, colormap, global_ml, threshold,lines,num_thread);
-        cout << "iciiiiiii" << endl;
+        cout << "après verif fp" << endl;
         sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
         for(auto s : vect_reads) {
             out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
         }
-        cout << "over" << endl;
     }
     else {
         cerr << "Error opening the file" << endl;
@@ -546,25 +547,29 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
     // #pragma omp parallel num_threads(num_thread)
     {
         vector<iread> curr_ids_read;
+        uint32_t curr_num_map;
+        icolor curr_id_color;
         #pragma omp for
         for(uint32_t i = 0; i < minlist.size(); i++) {
-            cout << i << " " << minlist.size() << endl;
-            if(mmermap.count(minlist[i]) != 0) {
+            curr_num_map = mmermap[minlist[i]]%1024;
+            curr_id_color = mmermap[minlist[i]];
+            //cout << "it" << endl;
+            //cout << curr_num_map << " " << curr_id_color << endl;
+            auto it_color = colormap[curr_num_map].find(curr_id_color);
+            //cout << "after it" << endl;
+            if((mmermap.count(minlist[i]) != 0) || (it_color != colormap[curr_num_map].end())) {
                 minimizer_match ++;
-                cout << "PAF CA FAIT DES CHOCAPICS"<< endl;
-                cout << colormap[(mmermap[minlist[i]]%1024)][mmermap[minlist[i]]] <<endl;
-                curr_ids_read = colormap[(mmermap[minlist[i]]%1024)][mmermap[minlist[i]]].get_vect_ireads();
+                curr_ids_read = it_color->second.get_vect_ireads();
                 for(auto id_read : curr_ids_read) {
                     #pragma omp critical (id_to_count)
                     {
                         id_to_count[id_read]++;
                     }
                 }
-                cout << "afterafter"<<endl;
             }
         }
     }
-    cout << "afterafterafter"<<endl;
+    //cout << "STEP 1 FINI"  <<endl;
     // VERIF SEUIL
     auto it = id_to_count.begin();
     while (it != id_to_count.end()) {
@@ -573,6 +578,7 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
         }
         it++;
     }
+    //cout << "FINI POSS READS" << endl;
     return res;
 }
 

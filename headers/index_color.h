@@ -30,7 +30,7 @@ class Index_color{
 
     public:
         string filename;
-        ifstream* read_stream;
+        ifstream* read_stream=NULL;
         uint16_t k;
         uint16_t m;
         mmer_map mmermap;
@@ -49,8 +49,13 @@ class Index_color{
         Index_color(string& mmer_binary_file, string& color_binary_file);
 
         ~Index_color(){
-            // delete colormap;
-            delete read_stream;
+            // for(uint i(0);i<1024;++i){
+            //     delete &colormap[i];
+            // }
+            delete[] colormap;
+            if(read_stream!=NULL){
+                delete read_stream;
+            }
         }
 
         void create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_occ, uint16_t max_ab, bool keep_all, uint8_t counting_bf_size, bool homocompression, uint16_t num_thread);

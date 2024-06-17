@@ -1,6 +1,6 @@
 CC = g++
 
-CFLAGS= -Ofast -std=c++17 -Wall  -w   -fopenmp -flto
+CFLAGS= -O3 -g -std=c++17 -Wall  -w   -fopenmp -flto
 CFLAGS_DELTA= -Ofast -std=c++17 -Wall -w 	
 LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -lz -fopenmp
 
@@ -51,6 +51,9 @@ clean:
 
 rebuild: clean $(EXEC)
 
+SEQ_TO_QUERY = "seq2.fasta"
+
 test:
 	./k2r_index -r example/reads/reads.fasta -b example/output/output_binary -s 26 --min-ab 1
-	./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -r 1
+	./k2r_query -s example/sequences/$(SEQ_TO_QUERY) -o example/output/query_output -b example/output/output_binary -r 1
+	sh check.sh example/reads/reads.fasta example/sequences/$(SEQ_TO_QUERY) example/output/query_output_$(SEQ_TO_QUERY)

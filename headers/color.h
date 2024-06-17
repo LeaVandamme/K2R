@@ -25,15 +25,18 @@
 
 using namespace std;
 
+
+
 class Color{
 
     public:
+        const static uint SIZEBUFFER=16;
         uint32_t compressed_array_size;
         string compressed_array;
         uint32_t nb_occ;
         iread nb_elem_last;
         uint32_t nb_elem_compressed;
-        uint32_t last_id_reads[16];
+        uint32_t last_id_reads[SIZEBUFFER];
         static uint color_deleted;
 
         Color();
@@ -44,46 +47,40 @@ class Color{
         ~Color();
 
         Color& operator=(Color&& color) noexcept{
-            // cout << "operator=( Color& color)" << endl;
             this->compressed_array_size = color.compressed_array_size;
             this->nb_elem_compressed=color.nb_elem_compressed;
             this->compressed_array = color.compressed_array;
             this->nb_occ = color.nb_occ;
             this->nb_elem_last = color.nb_elem_last;
-            for(uint i =0; i<16; i++){
+            for(uint i =0; i<SIZEBUFFER ; i++){
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
-            // cout << "fin operator=(const Color& color)" << endl;
             return *this;
         } 
         
         Color& operator=(const Color& color) {
-            // cout << "operator=(const Color& color)" << endl;
             this->compressed_array_size = color.compressed_array_size;
             this->nb_elem_compressed=color.nb_elem_compressed;
             this->compressed_array = color.compressed_array;
             this->nb_occ = color.nb_occ;
             this->nb_elem_last = color.nb_elem_last;
-            for(uint i =0; i<16; i++){
+            for(uint i =0; i<SIZEBUFFER ; i++){
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
-            // cout << "fin operator=(const Color& color)" << endl;
             return *this;
         } 
 
 
     Color(const Color& color) {
-        // cout << "Color(copy)" << endl;
          this->compressed_array_size = color.compressed_array_size;
-    this->nb_elem_compressed=color.nb_elem_compressed;
-    this->compressed_array = color.compressed_array;
-    this->nb_occ = color.nb_occ;
-    this->nb_elem_last = color.nb_elem_last;
-    for(uint i =0; i<this->nb_elem_last; i++){
-        this->last_id_reads[i] = color.last_id_reads[i];
-    }
-        // cout << "fin Color(copy)" << endl;
-    }
+        this->nb_elem_compressed=color.nb_elem_compressed;
+        this->compressed_array = color.compressed_array;
+        this->nb_occ = color.nb_occ;
+        this->nb_elem_last = color.nb_elem_last;
+        for(uint i =0; i<SIZEBUFFER ; i++){
+            this->last_id_reads[i] = color.last_id_reads[i];
+        }
+        }
 
 
 
@@ -107,7 +104,7 @@ class Color{
 
         void add_idread(iread id);
         void incremente_occurence();
-        bool decremente_occurence(); // VOIR CA
+        bool decremente_occurence();
         vector<iread> get_vect_ireads() const;
         void final_compression();
 
@@ -123,7 +120,10 @@ struct ankerl::unordered_dense::hash<Color> {
     using is_avalanching = void;
 
     std::size_t operator()(Color const& c) const noexcept {
-        uint64_t hash = std::hash<std::string>{}(c.compressed_array);
+        uint64_t hash = 0;
+        for(uint i = 0; i<c.compressed_array.size();i++){
+            hash ^= xorshift64(c.compressed_array[i]);
+        }
         for(uint i = 0; i<c.nb_elem_last;i++){
             hash ^= xorshift64(c.last_id_reads[i]);
         }

@@ -118,7 +118,18 @@ void ProcessArgs(int argc, char** argv)
 
 int main(int argc, char *argv[]){
 		putenv("OMP_STACKSIZE=128M");
-        ProcessArgs(argc, argv);
+		 k=(31);
+ m=(15);
+ counting_bf_size=(32);
+ min_ab=(2);
+ max_ab=(1000);
+ num_thread=(1);
+ read_file=("");
+ binary_prefix=("binary_index");
+ keep_all=(false);
+ max_ab_on=(false);
+ homocompression=(false);
+        ProcessArgs(argc, argv);	
         if (argc < 2){
             PrintHelp();
         }
@@ -144,6 +155,7 @@ int main(int argc, char *argv[]){
 		auto end_serializing = high_resolution_clock::now();
 		auto serializing = duration_cast<seconds>(end_serializing - start_serializing);
 		cout << "Serialization takes : " << serializing.count() << " seconds." << endl;
+		cout << "INDEXATION FINIE" << endl;
 
         return 0;
     }

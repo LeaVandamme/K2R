@@ -208,7 +208,7 @@ class minimizerLister{
         }
         vector<mmer> result;
         uint32_t old_minimizer, minimizer, last_minimizer;
-        last_minimizer=old_minimizer = minimizer = M_mask;
+        last_minimizer = old_minimizer = minimizer = M_mask;
         uint64_t last_position(0);
         // FOREACH KMER
         uint64_t seq(str2num(ref.substr(position_begin, K)));
@@ -239,12 +239,17 @@ class minimizerLister{
                     position_min += (i + 1);
                 }
             }
+            cout << "vect" << endl;
+            for(auto elt : result){
+                cout << elt << endl;
+            }
             // COMPUTE KMER MINIMIZER
             if(last_minimizer != old_minimizer){
+                cout << "avant push : " << old_minimizer << endl;
                 result.push_back(old_minimizer);
+                cout << "apres push" << endl;
                 last_minimizer = old_minimizer;
             }
-            
             last_position = i + 1;
             old_minimizer = minimizer;
         }
@@ -254,6 +259,7 @@ class minimizerLister{
                 last_minimizer = old_minimizer;
             }
         }
+        cout << "end" << endl;
         return result;
     }
 };

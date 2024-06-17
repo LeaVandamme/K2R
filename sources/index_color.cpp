@@ -46,7 +46,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         size_vect<<=counting_bf_size;
         uint64_t size_vect_mask=size_vect-1;
         uint16_t* counting_bf = new uint16_t[size_vect];
-        memset(counting_bf, 0, size_vect);
+        memset(counting_bf, 0, size_vect*2);
         vector<omp_lock_t> nutex(1024);
         omp_lock_t input_file_mutex,map_current_read_color_mutex, color_map_mutex[1024],mmermap_mutex;
         omp_init_lock(&input_file_mutex);
@@ -113,7 +113,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
             }
         }
-        delete(counting_bf);
+        delete[] counting_bf;
         // SECOND PASS
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_count);
         long seconds = end_count.tv_sec - begin_index.tv_sec;
@@ -198,11 +198,13 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     list_mofif_mmap.push_back({mmer,color_register});
                                 }
                                 else {
+                                    
                                     icolor previous_icolor(mmermap.at(mmer));
                                     omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
                                     previous_color = colormap[previous_icolor%1024][previous_icolor];
                                     omp_unset_lock(&(color_map_mutex[previous_icolor%1024]));
                                     color_to_verify = Color(previous_color, num_read-1);
+
                                     // IF THE COLOR NEED TO BE CHANGED
                                     //THIS IF IS NOT NEEDED IF MMER DUPLICATES ARE REMOVED
                                     if(color_to_verify != previous_color) {
@@ -402,9 +404,8 @@ void Index_color::deserialize_colormap(string& input_file){
         uint32_t map_size;
         for(uint i(0);i<1024;i++) {
             if(file.read((char*)&map_size, sizeof(uint32_t))) {
-                //cout << "Start:\t" << i << "\t" << map_size << endl;
+                cout << "Start:\t" << i << "\t" << map_size << endl;
                 for(uint j = 0; j<map_size; j++) {
-                    //cout<<"stl"<<endl;
                     file.read((char*)&id, sizeof(icolor));
                     Color c(file);
                     colormap[i].insert({id,c});
@@ -412,15 +413,6 @@ void Index_color::deserialize_colormap(string& input_file){
             }
         }
         file.close();
-        cout << colormap[540].size() << endl;
-        /*for(const auto&  elt : colormap[540]){
-            /*cout<<"begloop"<<endl;
-            cout << elt.first << endl;
-            cout << elt.second << endl;
-            cout<<"endloop"<<endl;
-        }*/
-        auto it_color = colormap[540].find(50716);
-        //cout << (it_color ==  colormap[540].end()) << endl;
     }
 }
 
@@ -456,10 +448,11 @@ vector<pair<string,uint32_t>> Index_color::query_sequence_fp(mmer_map& mmermap, 
 
 
 void Index_color::query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread) {
-   
     ifstream fichier(file_in, ios::in);
     ofstream out(file_out, ios::out | ios::trunc);
+
     if(fichier) {
+
         vector<pair<string,uint32_t>> vect_reads;
         vector<string> lines;
         vector<mmer>  global_ml;
@@ -482,22 +475,22 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
                 }
                 vect_reads.clear();
                 if(ligne.size()>0){
-                if (ligne[0] != '>' ) {
-                    local_ml = ml.get_minimizer_list(ligne);
-                    #pragma omp critical (globalml)
-                    {
-                        global_ml.insert(global_ml.end(), local_ml.begin(), local_ml.end());
-                    }
-                } 
+                    if (ligne[0] != '>' ) {
+                        cout << ligne << endl;
+                        local_ml = ml.get_minimizer_list(ligne);
+                        cout << "ttt" << endl;
+                        #pragma omp critical (globalml)
+                        {
+                            global_ml.insert(global_ml.end(), local_ml.begin(), local_ml.end());
+                        }
+                    } 
                 }
             }
         }
         fichier.close();
         
         sortAndRemoveDuplicates(global_ml);
-        cout<< file_in << endl;
         vect_reads = query_sequence_fp(mmermap, colormap, global_ml, threshold,lines,num_thread);
-        cout << "après verif fp" << endl;
         sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
         for(auto s : vect_reads) {
             out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
@@ -549,14 +542,12 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
         vector<iread> curr_ids_read;
         uint32_t curr_num_map;
         icolor curr_id_color;
-        #pragma omp for
+        // #pragma omp for
         for(uint32_t i = 0; i < minlist.size(); i++) {
+            cout << minlist[i] << endl;
             curr_num_map = mmermap[minlist[i]]%1024;
             curr_id_color = mmermap[minlist[i]];
-            //cout << "it" << endl;
-            //cout << curr_num_map << " " << curr_id_color << endl;
             auto it_color = colormap[curr_num_map].find(curr_id_color);
-            //cout << "after it" << endl;
             if((mmermap.count(minlist[i]) != 0) || (it_color != colormap[curr_num_map].end())) {
                 minimizer_match ++;
                 curr_ids_read = it_color->second.get_vect_ireads();
@@ -569,7 +560,6 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
             }
         }
     }
-    //cout << "STEP 1 FINI"  <<endl;
     // VERIF SEUIL
     auto it = id_to_count.begin();
     while (it != id_to_count.end()) {
@@ -578,7 +568,6 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
         }
         it++;
     }
-    //cout << "FINI POSS READS" << endl;
     return res;
 }
 

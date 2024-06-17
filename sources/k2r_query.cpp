@@ -90,12 +90,13 @@ void ProcessArgs(int argc, char** argv)
 }
 
 int main(int argc, char *argv[]){
+
+    cout << "ON EST DANS LA QUERYYYY" << endl;  
     
     ProcessArgs(argc, argv);
     if (argc < 2){
         PrintHelp();
     }else{
-        cout << "ON EST DANS LA QUERYYYY" << endl;
         string bin_file_mmer = binary_prefix + "_mmer.bin";
         string bin_file_color = binary_prefix + "_color.bin";
         Index_color index_color = Index_color(bin_file_mmer, bin_file_color);
@@ -109,11 +110,12 @@ int main(int argc, char *argv[]){
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);
             cout << "Querying the file takes " << (float)querying_seq.count() << " ns." << endl;
-            cout << "C'est fini pourquoi ça segfault BORDEL" << endl;
         }
         else if(fasta){
             auto start_querying_seq = high_resolution_clock::now();
-            index_color.query_fasta(query_file, output_prefix, threshold, num_thread);
+            size_t pos = query_file.find_last_of("/");
+            string output = output_prefix + "_" + query_file.substr(pos+1, '.');
+            index_color.query_fasta(query_file, output, threshold, num_thread);
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);
             cout << "Querying the sequence takes " << (float)querying_seq.count() << " ns." << endl;

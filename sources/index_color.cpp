@@ -70,7 +70,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                 getline(fichier,ligne);
                 omp_unset_lock(&input_file_mutex);
                 uint64_t mmer_hash, ind_to_insert;
-                if (ligne.size()>10) {
+                if (ligne.size()>=k) {
                     if(homocomp) {
                         ligne = homocompression(ligne);
                     }
@@ -139,7 +139,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         getline(fichier_scd,ligne);
                         getline(fichier_scd,ligne);
                         eof = fichier_scd.eof();
-                        if (ligne.size() > 10) {
+                        if (ligne.size() >= k) {
                             global_num_read++;
                             if(homocomp) {
                                 ligne = homocompression(ligne);
@@ -155,7 +155,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         minimizer_list.clear();
                     }
                     uint64_t num_read = global_num_read;
-                    if (ligne.size() > 10) {
+                    if (ligne.size() >= k) {
                         #pragma omp single
                         {
                             minimizer_list = ml.get_minimizer_list(ligne);
@@ -269,7 +269,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     for(uint i(0); i<1024; i++) {
         colormap_entries += colormap[i].size();
     }
-
+/*     for(uint i(0); i<1024; i++) {
+        cout << i << " : " << colormap[i].size()<<endl;
+    } */
 
     cout << "Color deleted / Total nb color / Ratio : " << intToString(Color::color_deleted) << " " << intToString(total_nb_color) << " " << (Color::color_deleted/total_nb_color) << endl;
     cout << "Number of entries in mmermap and colormap : " << intToString(mmermap.size()) << " " << intToString(colormap_entries) << endl;
@@ -404,10 +406,11 @@ void Index_color::deserialize_colormap(string& input_file){
         uint32_t map_size;
         for(uint i(0);i<1024;i++) {
             if(file.read((char*)&map_size, sizeof(uint32_t))) {
-                cout << "Start:\t" << i << "\t" << map_size << endl;
+                //cout << "Start:\t" << i << "\t" << map_size << endl;
                 for(uint j = 0; j<map_size; j++) {
                     file.read((char*)&id, sizeof(icolor));
                     Color c(file);
+                    //cout << c << endl;
                     colormap[i].insert({id,c});
                 }
             }
@@ -476,9 +479,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
                 vect_reads.clear();
                 if(ligne.size()>0){
                     if (ligne[0] != '>' ) {
-                        cout << ligne << endl;
                         local_ml = ml.get_minimizer_list(ligne);
-                        cout << "ttt" << endl;
                         #pragma omp critical (globalml)
                         {
                             global_ml.insert(global_ml.end(), local_ml.begin(), local_ml.end());

@@ -51,9 +51,10 @@ clean:
 
 rebuild: clean $(EXEC)
 
-SEQ_TO_QUERY = "seq2.fasta"
+FILE_TO_INDEX = reads1000.fasta
+SEQ_TO_QUERY = seq2.fasta
 
 test:
-	./k2r_index -r example/reads/reads.fasta -b example/output/output_binary -s 26 --min-ab 1
+	./k2r_index -r example/reads/$(FILE_TO_INDEX) -b example/output/output_binary -s 26 --min-ab 1
 	./k2r_query -s example/sequences/$(SEQ_TO_QUERY) -o example/output/query_output -b example/output/output_binary -r 1
-	sh check.sh example/reads/reads.fasta example/sequences/$(SEQ_TO_QUERY) example/output/query_output_$(SEQ_TO_QUERY)
+	sh check.sh example/reads/$(FILE_TO_INDEX) example/sequences/$(SEQ_TO_QUERY) example/output/query_output_$(SEQ_TO_QUERY)

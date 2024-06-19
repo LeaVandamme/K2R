@@ -239,15 +239,15 @@ class minimizerLister{
                     position_min += (i + 1);
                 }
             }
-            cout << "vect" << endl;
-            for(auto elt : result){
+            // cout << "vect" << endl;
+/*             for(auto elt : result){
                 cout << elt << endl;
-            }
+            } */
             // COMPUTE KMER MINIMIZER
             if(last_minimizer != old_minimizer){
-                cout << "avant push : " << old_minimizer << endl;
+                // cout << "avant push : " << old_minimizer << endl;
                 result.push_back(old_minimizer);
-                cout << "apres push" << endl;
+                // cout << "apres push" << endl;
                 last_minimizer = old_minimizer;
             }
             last_position = i + 1;
@@ -259,7 +259,6 @@ class minimizerLister{
                 last_minimizer = old_minimizer;
             }
         }
-        cout << "end" << endl;
         return result;
     }
 };

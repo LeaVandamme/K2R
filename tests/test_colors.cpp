@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
         cout << "bug !=" << endl;
     }
 
-    f.add_idread(32);
+    f.add_idread(95);
     cout << f << endl;
     cout << g << endl;
     if(f == g){

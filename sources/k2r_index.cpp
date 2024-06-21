@@ -118,17 +118,21 @@ void ProcessArgs(int argc, char** argv)
 
 int main(int argc, char *argv[]){
 		putenv("OMP_STACKSIZE=128M");
-		 k=(31);
- m=(15);
- counting_bf_size=(32);
- min_ab=(2);
- max_ab=(1000);
- num_thread=(1);
- read_file=("");
- binary_prefix=("binary_index");
- keep_all=(false);
- max_ab_on=(false);
- homocompression=(false);
+
+		k=(31);
+		m=(15);
+		counting_bf_size=(32);
+		min_ab=(2);
+		max_ab=(1000);
+		num_thread=(1);
+		read_file=("");
+		binary_prefix=("binary_index");
+		keep_all=(false);
+		max_ab_on=(false);
+		homocompression=(false);
+
+
+		
         ProcessArgs(argc, argv);	
         if (argc < 2){
             PrintHelp();
@@ -137,25 +141,28 @@ int main(int argc, char *argv[]){
 
         string file_out, prefix_binary_file, binary_file_mmermap, binary_file_colormap;
 		auto start_indexing = high_resolution_clock::now();
+		cout << "INDEX CONSTRUCTION" << endl;
+		cout << "=========================================================" << endl << endl;
+		cout << "Start indexing the file : " + read_file << endl << endl;
 		index_color.create_index_mmer_no_unique(read_file, k, m, min_ab, max_ab, keep_all, counting_bf_size, homocompression, num_thread);
 		auto end_indexing = high_resolution_clock::now();
 		auto indexing = duration_cast<seconds>(end_indexing - start_indexing);
 
-		cout << "\n";
 		cout << "Indexing takes " << indexing.count() << " seconds." << endl;
-		cout << "M-mer indexed : " << intToString(index_color.mmermap.size()) << " | " << endl;
 		uint64_t memory_used_index = getMemorySelfMaxUsed();
-		cout << "Resource usage (indexing) : " << intToString(memory_used_index) << " Ko" << endl;
+		cout << "Resource usage : " << intToString(memory_used_index) << " Ko" << endl;
+		cout << endl << "SERIALIZATION" << endl;
+		cout << "=========================================================" << endl;
 
 		binary_file_colormap = binary_prefix + "_color.bin";
 		binary_file_mmermap = binary_prefix + "_mmer.bin";
 		auto start_serializing = high_resolution_clock::now();
+		cout << endl << "Beginning of serialization in files : " + binary_file_mmermap + " & " + binary_file_colormap << endl;
 		index_color.serialize_mmermap(binary_file_mmermap);
 		index_color.serialize_colormap(binary_file_colormap);
 		auto end_serializing = high_resolution_clock::now();
 		auto serializing = duration_cast<seconds>(end_serializing - start_serializing);
 		cout << "Serialization takes : " << serializing.count() << " seconds." << endl;
-		cout << "INDEXATION FINIE" << endl;
 
         return 0;
     }

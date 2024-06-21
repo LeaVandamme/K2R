@@ -20,12 +20,8 @@ Index_color::Index_color(string& fastaFilename,uint16_t kmerLength, uint16_t mme
 
 
 Index_color::Index_color(string& mmer_binary_file, string& color_binary_file){
-    auto start_deserialize = high_resolution_clock::now();
     deserialize_mmermap(mmer_binary_file);
     deserialize_colormap(color_binary_file);
-    auto end_deserialize = high_resolution_clock::now();
-    auto deserialize = duration_cast<nanoseconds>(end_deserialize - start_deserialize);
-    cout << "Deserialization takes " << (float)deserialize.count() << " ns." << endl;
 }
 
 
@@ -35,13 +31,14 @@ uint64_t mmer_deleted = 0;
 
 
 void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_ab, uint16_t max_ab, bool keep_all, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread){
-    struct timespec begin_index, end_index,end_count;
+    struct timespec begin_index, end_index, end_bf, end_crea;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin_index);
     colormap = new color_map[1024];
     // FIRST PASS
     ifstream fichier(read_file, ios::in);
     iread num_read = 0;
     if(fichier) {
+        cout << "STEP 1 : Counting Bloom Filter" << endl;
         uint64_t size_vect = 1;
         size_vect<<=counting_bf_size;
         uint64_t size_vect_mask=size_vect-1;
@@ -115,17 +112,22 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         }
         delete[] counting_bf;
         // SECOND PASS
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_count);
-        long seconds = end_count.tv_sec - begin_index.tv_sec;
-        cout << "Phase 1 (Counting BF) CPU time : " << seconds << " seconds."  << endl;
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_bf);
+        long seconds = end_bf.tv_sec - begin_index.tv_sec;
+        cout << "CPU Time for STEP 1 : " << seconds << " seconds."  << endl;
+        cout << endl;
+
+        cout << "STEP 2 : Index construction" << endl;
+
         zstr::ifstream fichier_scd(read_file, ios::in);
         iread global_num_read = 0;
+        color_icolor_map map_current_read_color;
         if(fichier_scd) {
             icolor current_id_color = 1;
-            color_icolor_map map_current_read_color;
             string ligne;
             vector<mmer> minimizer_list;
             bool eof = false;
+            icolor color_register;
             // #pragma omp parallel num_threads(num_thread)
             {
                 minimizerLister ml = minimizerLister(k, m);
@@ -174,12 +176,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 if (mmermap.find(mmer) == mmermap.end()) {
                                     color_to_verify = Color(num_read -1);
                                     omp_set_lock(&map_current_read_color_mutex);
-                                    icolor color_register;
                                     auto result = map_current_read_color.emplace(color_to_verify, current_id_color);
                                     // IF COLOR NOT IN TEMPORARY MAP
                                     if (result.second) {
                                         current_id_color++;
-                                        #pragma omp flush(current_id_color)
+                                        //#pragma omp flush(current_id_color)
                                     }
                                     omp_unset_lock(&map_current_read_color_mutex);
                                     color_register = result.first->second;
@@ -198,7 +199,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     list_mofif_mmap.push_back({mmer,color_register});
                                 }
                                 else {
-                                    
                                     icolor previous_icolor(mmermap.at(mmer));
                                     omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
                                     previous_color = colormap[previous_icolor%1024][previous_icolor];
@@ -233,6 +233,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                             #pragma omp atomic
                                             total_nb_color++;
                                         }
+
                                         omp_unset_lock(&(color_map_mutex[color_register%1024]));
                                     }
                                 }
@@ -257,9 +258,13 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     it++;
                 }
             }
+            clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_crea);
+            auto seconds = end_crea.tv_sec - end_bf.tv_sec;
+            cout << "CPU Time for STEP 2 : " << seconds << " seconds."  << endl;
+            cout << endl;
         }
         else {
-            cerr << "Error opening the file." << endl;
+            cerr << "Error opening the read file : " << read_file << endl;
         }
         fichier.close();
     }
@@ -269,14 +274,29 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     for(uint i(0); i<1024; i++) {
         colormap_entries += colormap[i].size();
     }
-/*     for(uint i(0); i<1024; i++) {
+    /*for(uint i(1000); i<1024; i++) {
         cout << i << " : " << colormap[i].size()<<endl;
-    } */
+        for(auto elt : colormap[i]){
+            cout << elt.first << "  :  " << elt.second << endl;
+        }
+    }*/
 
-    cout << "Color deleted / Total nb color / Ratio : " << intToString(Color::color_deleted) << " " << intToString(total_nb_color) << " " << (Color::color_deleted/total_nb_color) << endl;
-    cout << "Number of entries in mmermap and colormap : " << intToString(mmermap.size()) << " " << intToString(colormap_entries) << endl;
+    icolor idcolor = mmermap[189267462];
+    cout << colormap[idcolor%1024][idcolor] << endl;
 
-    uint64_t somme_taille_c(0), somme_taille_colorid_cmap(0), somme_taille_colorid_mmermap(0), somme_taille_mmerid_mmermap(0);
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_index);
+    auto seconds = end_index.tv_sec - begin_index.tv_sec;
+    cout << "Total CPU time : " << seconds << " seconds."  << endl;
+    cout << endl << "KEY NUMBERS" << endl;
+    cout << "=========================================================" << endl << endl;
+
+    cout << "M-mer indexed : " << intToString(mmermap.size()) << endl;
+    cout << "Color indexed : " << intToString(colormap_entries) << endl;
+    cout << "\t Total color created : " << intToString(total_nb_color) << endl;
+    cout << "\t Total color deleted : " << intToString(Color::color_deleted) << endl << endl;
+    
+
+    double somme_taille_c(0), somme_taille_colorid_cmap(0), somme_taille_colorid_mmermap(0), somme_taille_mmerid_mmermap(0);
     for(uint i(0); i<1024; i++) {
         color_map::iterator it = colormap[i].begin();
         while (it != colormap[i].end()) {
@@ -287,17 +307,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
     somme_taille_mmerid_mmermap = mmermap.size()*8;
     somme_taille_colorid_mmermap = mmermap.size()*4;
-    somme_taille_colorid_cmap = colormap_entries * 8;
-    cout << "M-mer map size : " << intToString(somme_taille_mmerid_mmermap + somme_taille_colorid_mmermap) << " Bytes." << endl;
-    cout << "Color map size : " << intToString(somme_taille_colorid_cmap + somme_taille_c) << " Bytes." << endl;
-    cout << "Compressed color size : " << intToString(somme_taille_c) << " Bytes." << endl;
-    //cout << "Mémoire utilisée pour une couleur : " << double((somme_taille_c) / colormap.size()) << " Bytes." << endl;
-
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_index);
-    auto seconds = end_index.tv_sec - end_count.tv_sec;
-    cout << "Phase 2 CPU time : " << seconds << " seconds."  << endl;
-    seconds = end_index.tv_sec - begin_index.tv_sec;
-    cout << "Total CPU time : " << seconds << " seconds."  << endl;
+    somme_taille_colorid_cmap = colormap_entries*8;
+    cout << "M-mer map size : " << (somme_taille_mmerid_mmermap + somme_taille_colorid_mmermap)/1000000 << " Mo." << endl;
+    cout << "Color map size : " << (somme_taille_colorid_cmap + somme_taille_c)/1000000 << " Mo." << endl;
+    cout << "Compressed color size : " << somme_taille_c/1000000 << " Mo." << endl << endl;
 }
 
 
@@ -545,7 +558,7 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
         icolor curr_id_color;
         // #pragma omp for
         for(uint32_t i = 0; i < minlist.size(); i++) {
-            cout << minlist[i] << endl;
+            //cout << minlist[i] << endl;
             curr_num_map = mmermap[minlist[i]]%1024;
             curr_id_color = mmermap[minlist[i]];
             auto it_color = colormap[curr_num_map].find(curr_id_color);

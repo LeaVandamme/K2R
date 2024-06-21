@@ -211,6 +211,7 @@ class minimizerLister{
         last_minimizer = old_minimizer = minimizer = M_mask;
         uint64_t last_position(0);
         // FOREACH KMER
+
         uint64_t seq(str2num(ref.substr(position_begin, K)));
         uint64_t position_min;
         uint64_t min_seq = (str2num(ref.substr(position_begin+K - M, M)));
@@ -239,10 +240,6 @@ class minimizerLister{
                     position_min += (i + 1);
                 }
             }
-            // cout << "vect" << endl;
-/*             for(auto elt : result){
-                cout << elt << endl;
-            } */
             // COMPUTE KMER MINIMIZER
             if(last_minimizer != old_minimizer){
                 // cout << "avant push : " << old_minimizer << endl;

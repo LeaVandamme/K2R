@@ -1,8 +1,8 @@
 CC = g++
 
-CFLAGS= -O3 -g -std=c++17 -Wall  -w   -fopenmp -flto
-CFLAGS_DELTA= -Ofast -std=c++17 -Wall -w 	
-LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread -flto -lpthread -lz -fopenmp
+CFLAGS= -O3 -g -std=c++17 -Wall  -w -fopenmp 
+CFLAGS_DELTA= -O3 -std=c++17 -Wall -w
+LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread  -lpthread -lz -fopenmp
 
 PREXEC = turboPFor_compile
 EXEC = k2r_index k2r_query test_colors
@@ -51,10 +51,10 @@ clean:
 
 rebuild: clean $(EXEC)
 
-FILE_TO_INDEX = reads1000.fasta
-SEQ_TO_QUERY = seq2.fasta
+FILE_TO_INDEX = reads25.fasta
+SEQ_TO_QUERY = fof.txt
 
 test:
 	./k2r_index -r example/reads/$(FILE_TO_INDEX) -b example/output/output_binary -s 26 --min-ab 1
-	./k2r_query -s example/sequences/$(SEQ_TO_QUERY) -o example/output/query_output -b example/output/output_binary -r 1
-	sh check.sh example/reads/$(FILE_TO_INDEX) example/sequences/$(SEQ_TO_QUERY) example/output/query_output_$(SEQ_TO_QUERY)
+	./k2r_query -f example/sequences/$(SEQ_TO_QUERY) -o example/output/query_output -b example/output/output_binary -r 1
+	sh check.sh fof example/reads/$(FILE_TO_INDEX) example/sequences/$(SEQ_TO_QUERY) example/output/query_output_$(SEQ_TO_QUERY)

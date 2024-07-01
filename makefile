@@ -51,10 +51,10 @@ clean:
 
 rebuild: clean $(EXEC)
 
-FILE_TO_INDEX = reads25.fasta
+FILE_TO_INDEX = reads750.fasta
 SEQ_TO_QUERY = fof.txt
 
 test:
 	./k2r_index -r example/reads/$(FILE_TO_INDEX) -b example/output/output_binary -s 26 --min-ab 1
 	./k2r_query -f example/sequences/$(SEQ_TO_QUERY) -o example/output/query_output -b example/output/output_binary -r 1
-	sh check.sh fof example/reads/$(FILE_TO_INDEX) example/sequences/$(SEQ_TO_QUERY) example/output/query_output_$(SEQ_TO_QUERY)
+	sh check.sh fof example/reads/$(FILE_TO_INDEX) example/sequences/$(SEQ_TO_QUERY) example/output/query_output

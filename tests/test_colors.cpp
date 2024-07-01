@@ -32,7 +32,7 @@ int main(int argc, char *argv[]){
     c.add_idread(9);
     c.add_idread(12);
     c.add_idread(13);
-    for (auto i = 14; i< 42;i++) {
+    for (auto i = 14; i< 30;i++) {
         c.add_idread(i);
     }
     cout << c << endl;

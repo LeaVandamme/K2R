@@ -52,7 +52,7 @@ class Color{
             this->compressed_array = color.compressed_array;
             this->nb_occ = color.nb_occ;
             this->nb_elem_last = color.nb_elem_last;
-            for(uint i =0; i<this->nb_elem_last ; i++){
+            for(uint i =0; i<SIZEBUFFER ; i++){
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
             return *this;
@@ -64,7 +64,7 @@ class Color{
             this->compressed_array = color.compressed_array;
             this->nb_occ = color.nb_occ;
             this->nb_elem_last = color.nb_elem_last;
-            for(uint i =0; i<this->nb_elem_last ; i++){
+            for(uint i =0; i<SIZEBUFFER ; i++){
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
             return *this;

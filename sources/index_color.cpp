@@ -177,6 +177,12 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     color_to_verify = Color(num_read -1);
                                     omp_set_lock(&map_current_read_color_mutex);
                                     auto result = map_current_read_color.emplace(color_to_verify, current_id_color);
+                                                                        if(current_id_color == 46197){
+                                        cout << previous_color << endl;
+                                        cout << color_to_verify << endl;
+                                        //auto result = map_current_read_color.emplace(color_to_verify, current_id_color);
+                                        cout << result.second << endl;
+                                    }
                                     // IF COLOR NOT IN TEMPORARY MAP
                                     if (result.second) {
                                         current_id_color++;
@@ -190,6 +196,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                         incremente_color(colormap[color_register%1024], color_register);
                                     }
                                     else {
+                                        // cout << "ID COLOR : " << color_register << "    " << color_to_verify << endl;
                                         add_color(colormap[color_register%1024], color_to_verify, color_register);
                                         #pragma omp atomic
                                         total_nb_color++;
@@ -204,16 +211,109 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     previous_color = colormap[previous_icolor%1024][previous_icolor];
                                     omp_unset_lock(&(color_map_mutex[previous_icolor%1024]));
                                     color_to_verify = Color(previous_color, num_read-1);
-
                                     // IF THE COLOR NEED TO BE CHANGED
                                     //THIS IF IS NOT NEEDED IF MMER DUPLICATES ARE REMOVED
                                     if(color_to_verify != previous_color) {
                                         // IF COLOR NOT IN TEMPORARY MAP
                                         omp_set_lock(&map_current_read_color_mutex);
+                                        if(current_id_color == 46197){
+                                            cout << previous_color << endl;
+                                            cout << color_to_verify << endl;
+                                            cout << "coucou" << endl;
+
+                                        }
+                                        if(current_id_color == 46197){
+                                                for(auto elt  : map_current_read_color){
+                                                    if(elt.second == 46178){
+                                                        cout << "EGALITE " << (elt.first == color_to_verify) << endl;
+                                                        auto result = map_current_read_color.emplace(elt.first, current_id_color);
+                                                        cout << "result  " << result.second << endl;
+                                                        cout << elt.first << endl;
+                                                        cout << color_to_verify << endl;
+                                                    }
+                                                }
+                                        }
+                                            
+                                        auto it = map_current_read_color.find(color_to_verify);
+                                        bool a = (it == map_current_read_color.end()) ;
+                                        if (current_id_color == 46178) {
+                                            cout << "###################################################" << endl;
+                                            cout << color_to_verify << endl;
+                                            uint64_t hash = 0;
+                                            for(char c : color_to_verify.compressed_array){
+                                                hash ^= xorshift64(c);
+                                                cout << hash << "  !"<< bitset<8>(c).to_string() <<"!" <<endl;
+                                            }
+                                            for(uint i = 0; i<color_to_verify.nb_elem_last;i++){
+                                                hash ^= xorshift64(color_to_verify.last_id_reads[i]);
+                                                cout << hash << "   " << color_to_verify.last_id_reads[i]<<endl;
+                                            }
+                                            cout << "end first hash" << endl;
+                                            cout << hash << endl;
+                                        }
                                         auto result = map_current_read_color.emplace(color_to_verify, current_id_color);
+                                        
+                                        if(current_id_color == 46197){
+                                            cout << "result 2   " << result.second << "     "<< a<< endl;
+                                            if(result.second == 1){
+                                                for(auto elt  : map_current_read_color){
+                                                    if(elt.second == 46178){
+                                                        cout << (elt.first == color_to_verify) << endl;
+                                                        uint64_t hash = 0;
+                                                        for(uint i =0; i<elt.first.compressed_array_size; i++){
+                                                            hash ^= xorshift64(elt.first.compressed_array[i]);
+                                                            cout << hash << "  !"<< bitset<8>(elt.first.compressed_array[i]).to_string() <<"!" <<endl;
+                                                        }
+                                                        for(uint i = 0; i<elt.first.nb_elem_last;i++){
+                                                            hash ^= xorshift64(elt.first.last_id_reads[i]);
+                                                            cout << hash << "   " << elt.first.last_id_reads[i] << "  " << elt.first.nb_elem_last <<endl;
+                                                        }
+                                                        cout << "end first hash" << endl;
+                                                        uint64_t hash2 = 0;
+                                                        for(uint i =0; i<color_to_verify.compressed_array_size; i++){
+                                                            hash2 ^= xorshift64(color_to_verify.compressed_array[i]);
+                                                            cout << hash2 << "  !"<< bitset<8>(color_to_verify.compressed_array[i]).to_string() <<"!"<< endl;
+                                                        }
+                                                        for(uint i = 0; i<color_to_verify.nb_elem_last;i++){
+                                                            hash2 ^= xorshift64(color_to_verify.last_id_reads[i]);
+                                                            cout << hash2 <<  "   " << color_to_verify.last_id_reads[i]<< "  " << elt.first.nb_elem_last << endl;
+                                                        }
+                                                        cout << "end hash 2" << endl;
+                                                        cout << "///////////////////////////////" << endl;
+
+
+                                                        Color c1 = Color();
+                                                        for(iread r : elt.first.get_vect_ireads()){
+                                                            c1.add_idread(r);
+                                                        }
+                                                        hash = 0;
+                                                        for(char c : c1.compressed_array){
+                                                            hash ^= xorshift64(c);
+                                                            cout << hash << "  !"<< bitset<8>(c).to_string() <<"!" <<endl;
+                                                        }
+                                                        for(uint i = 0; i<c1.nb_elem_last;i++){
+                                                            hash ^= xorshift64(c1.last_id_reads[i]);
+                                                            cout << hash << "   " << c1.last_id_reads[i]<<endl;
+                                                        }
+                                                        cout << "end first hash" << endl;
+                                                        cout << hash << endl;
+                                                        result = map_current_read_color.emplace(c1, 166);
+                                                        
+                                                    }
+                                                }
+                                                cout << "PRIIINT" << endl;
+                                                for(auto elt : map_current_read_color){
+                                                    cout << elt.second  << "  :  " << elt.first << endl;
+                                                }
+                                                cout << "FIN DE PRIIINT " << endl;
+                                            }
+                                        }
                                         icolor color_register;
                                         if (result.second) {
                                             current_id_color++;
+                                            if(current_id_color == 46198){
+                                            cout << "increment" << endl;
+                                            }
                                             #pragma omp flush(current_id_color)
                                         }
 
@@ -229,6 +329,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                             incremente_color(colormap[color_register%1024], color_register);
                                         }
                                         else {
+                                            // cout << "ID COLOR : " << color_register << "    " << color_to_verify << endl;
+                                            // if(color_register == 46197){
+                                            //     cout << previous_color << "  " << color_to_verify << endl;
+                                            // }
                                             add_color(colormap[color_register%1024], color_to_verify, color_register);
                                             #pragma omp atomic
                                             total_nb_color++;
@@ -274,15 +378,12 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     for(uint i(0); i<1024; i++) {
         colormap_entries += colormap[i].size();
     }
-    /*for(uint i(1000); i<1024; i++) {
-        cout << i << " : " << colormap[i].size()<<endl;
+    for(uint i(0); i<1024; i++) {
         for(auto elt : colormap[i]){
-            cout << elt.first << "  :  " << elt.second << endl;
+            cout << elt.first << "   " << elt.second << endl;
         }
-    }*/
+    }
 
-    icolor idcolor = mmermap[189267462];
-    cout << colormap[idcolor%1024][idcolor] << endl;
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_index);
     auto seconds = end_index.tv_sec - begin_index.tv_sec;

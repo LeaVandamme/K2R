@@ -51,7 +51,7 @@ clean:
 
 rebuild: clean $(EXEC)
 
-FILE_TO_INDEX = reads750.fasta
+FILE_TO_INDEX = reads1000.fasta
 SEQ_TO_QUERY = fof.txt
 
 test:

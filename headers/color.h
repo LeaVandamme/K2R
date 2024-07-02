@@ -18,7 +18,7 @@
 #include <omp.h>
 #include "type.h"
 #include "../include/zstr.hpp"
-#include "../headers/utils.h"
+#include "utils.h"
 #include "../include/unordered_dense.h"
 #include "../TurboPFor-Integer-Compression/include/ic.h"
 
@@ -101,6 +101,7 @@ class Color{
         void set_compressed_array_size(uint32_t size);
         void set_nb_elem_last(uint32_t nb_elem_last);
         void set_nb_elem_compressed(uint32_t nb_elem_compressed);
+        uint64_t hashtest();
 
         void add_idread(iread id);
         void incremente_occurence();
@@ -128,11 +129,9 @@ struct ankerl::unordered_dense::hash<Color> {
 
     std::size_t operator()(Color const& c) const noexcept {
         uint64_t hash = 0;
-        for(uint i = 0; i<c.compressed_array.size();i++){
-            hash ^= xorshift64(c.compressed_array[i]);
-        }
-        for(uint i = 0; i<c.nb_elem_last;i++){
-            hash ^= xorshift64(c.last_id_reads[i]);
+        vector<uint32_t> decomp = c.get_vect_ireads();
+        for(uint i = 0; i<decomp.size();i++){
+            hash ^= xorshift64(decomp[i]);
         }
         return hash;
     }

@@ -123,19 +123,19 @@ string compress_color(vector<iread>& to_compress);
 vector<iread> decompress_color(string to_decompress, uint32_t size);
 ostream &operator<<(std::ostream &os,const  Color &c);
 
-template <>
-struct ankerl::unordered_dense::hash<Color> {
-    using is_avalanching = void;
+// template <>
+// struct ankerl::unordered_dense::hash<Color> {
+//     using is_avalanching = void;
 
-    std::size_t operator()(Color const& c) const noexcept {
-        uint64_t hash = 0;
-        vector<uint32_t> decomp = c.get_vect_ireads();
-        for(uint i = 0; i<decomp.size();i++){
-            hash ^= xorshift64(decomp[i]);
-        }
-        return hash;
-    }
-};
+//     std::size_t operator()(Color const& c) const noexcept {
+//         uint64_t hash = 0;
+//         vector<uint32_t> decomp = c.get_vect_ireads();
+//         for(uint i = 0; i<decomp.size();i++){
+//             hash ^= xorshift64(decomp[i]);
+//         }
+//         return hash;
+//     }
+// };
 
 
 #endif

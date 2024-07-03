@@ -45,9 +45,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         uint16_t* counting_bf = new uint16_t[size_vect];
         memset(counting_bf, 0, size_vect*2);
         vector<omp_lock_t> nutex(1024);
-        omp_lock_t input_file_mutex,set_current_read_color_mutex, color_map_mutex[1024],mmermap_mutex;
+        omp_lock_t input_file_mutex,map_current_read_color_mutex, color_map_mutex[1024],mmermap_mutex;
         omp_init_lock(&input_file_mutex);
-        omp_init_lock(&set_current_read_color_mutex);
+        omp_init_lock(&map_current_read_color_mutex);
         omp_init_lock(&mmermap_mutex);
         for(uint i(0); i<1024; i++) {
             omp_init_lock(&(color_map_mutex[i]));
@@ -121,7 +121,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
         zstr::ifstream fichier_scd(read_file, ios::in);
         iread global_num_read = 0;
-        set_tmp_colors set_current_read_color;
+        map_tmp_colors map_current_read_color;
         if(fichier_scd) {
             icolor current_id_color = 1;
             string ligne;
@@ -153,7 +153,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         else {
                             ligne.clear();
                         }
-                        set_current_read_color.clear();
+                        map_current_read_color.clear();
                         minimizer_list.clear();
                     }
                     uint64_t num_read = global_num_read;
@@ -175,18 +175,15 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 // IF KMER NOT IN MAP
                                 if (mmermap.find(mmer) == mmermap.end()) {
                                     color_to_verify = Color(num_read -1);
-                                    omp_set_lock(&set_current_read_color_mutex);
-                                    auto result = set_current_read_color.insert(color_to_verify.get_vect_ireads());
+                                    omp_set_lock(&map_current_read_color_mutex);
+                                    auto result = map_current_read_color.emplace(color_to_verify.get_vect_ireads(), current_id_color);
                                     // IF COLOR NOT IN TEMPORARY MAP
                                     if (result.second) {
-                                        color_register = current_id_color;
                                         current_id_color++;
                                         //#pragma omp flush(current_id_color)
                                     }
-                                    else{
-                                        color_register = current_id_color;
-                                    }
-                                    omp_unset_lock(&set_current_read_color_mutex);
+                                    omp_unset_lock(&map_current_read_color_mutex);
+                                    color_register = result.first->second;
                                     
                                     // ADD OR INCREMENTE COLOR
                                     omp_set_lock(&(color_map_mutex[color_register%1024]));
@@ -212,21 +209,18 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     //THIS IF IS NOT NEEDED IF MMER DUPLICATES ARE REMOVED
                                     if(color_to_verify != previous_color) {
                                         // IF COLOR NOT IN TEMPORARY MAP
-                                        omp_set_lock(&set_current_read_color_mutex);
+                                        omp_set_lock(&map_current_read_color_mutex);
                                             
-                                        auto result = set_current_read_color.insert(color_to_verify.get_vect_ireads());
+                                        auto result = map_current_read_color.emplace(color_to_verify.get_vect_ireads(), current_id_color);
                                         
                                         icolor color_register;
                                         if (result.second) {
-                                            color_register = current_id_color;
                                             current_id_color++;
                                             //#pragma omp flush(current_id_color)
                                         }
-                                        else{
-                                            color_register = current_id_color;
-                                        }
 
-                                        omp_unset_lock(&set_current_read_color_mutex);
+                                        omp_unset_lock(&map_current_read_color_mutex);
+                                        color_register = result.first->second;
                                         list_mofif_mmap.push_back({mmer,color_register});
                                         omp_set_lock(&(color_map_mutex[previous_icolor%1024]));
                                         decremente_color(colormap[previous_icolor%1024], previous_icolor);
@@ -556,9 +550,9 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
         icolor curr_id_color;
         // #pragma omp for
         for(uint32_t i = 0; i < minlist.size(); i++) {
-            //cout << minlist[i] << endl;
             curr_num_map = mmermap[minlist[i]]%1024;
             curr_id_color = mmermap[minlist[i]];
+            cout << minlist[i] << "   " << mmermap[minlist[i]] << "   " << colormap[curr_num_map][curr_id_color] << endl;
             auto it_color = colormap[curr_num_map].find(curr_id_color);
             if((mmermap.count(minlist[i]) != 0) || (it_color != colormap[curr_num_map].end())) {
                 minimizer_match ++;
@@ -571,6 +565,9 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
                 }
             }
         }
+    }
+    for(auto elt : id_to_count){
+        cout << elt.first << "  :  " << elt.second << endl;
     }
     // VERIF SEUIL
     auto it = id_to_count.begin();

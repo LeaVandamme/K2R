@@ -134,15 +134,7 @@ void Color::add_idread(iread id){
             this->nb_occ = 1;
         }
         else{
-            // for(uint i(0); i<Color::SIZEBUFFER; i++){
-            //     cout << this->last_id_reads[i] << " " ;
-            // }
-            // cout << endl;
             this->last_id_reads[this->get_nb_elem_last()] = id;
-            // for(uint i(0); i<Color::SIZEBUFFER; i++){
-            //     cout << this->last_id_reads[i] << " " ;
-            // }
-            // cout << endl;
             uint nb(this->get_nb_elem_last());
             this->set_nb_elem_last(nb+1);
             this->nb_occ = 1;

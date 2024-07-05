@@ -8,7 +8,7 @@ using namespace std;
 void sortAndRemoveDuplicates(vector<uint32_t>& vec);
 void sortAndRemoveDuplicates(vector<uint64_t>& vec);
 
-uint64_t countSharedElements(const vector<uint64_t>& vec1, const vector<uint64_t>& vec2);
+uint64_t countSharedSuccessiveElements(const vector<uint64_t>& vec1, const vector<uint64_t>& vec2);
 
 uint64_t getMemorySelfMaxUsed ();
 

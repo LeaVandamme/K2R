@@ -25,21 +25,28 @@ void sortAndRemoveDuplicates(vector<uint64_t>& vec) {
     vec.erase(lastUnique, vec.end());
 }
 
-uint64_t countSharedElements(const vector<uint64_t>& vec1, const vector<uint64_t>& vec2) {
+uint64_t countSharedSuccessiveElements(const vector<uint64_t>& vec1, const vector<uint64_t>& vec2) {
     uint64_t count = 0;
+    uint64_t max = 0;
     uint64_t i = 0, j = 0;
-    while (i < vec1.size() && j < vec2.size()) {
-        if (vec1[i] < vec2[j]) {
-            ++i;
-        } else if (vec1[i] > vec2[j]) {
+    while (j < vec2.size()) {
+        if (vec1[i] != vec2[j]) {
+            if(count > max){
+                max = count;
+            }
+            count = 0;
+            i = 0;
             ++j;
-        } else {
+        }else {
             ++count;
             ++i;
             ++j;
+            if(count > max){
+                max = count;
+            }
         }
     }
-    return count;
+    return max;
 }
 
 uint64_t getMemorySelfMaxUsed (){

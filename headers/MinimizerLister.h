@@ -170,7 +170,7 @@ class minimizerLister{
 
     vector<kmer> get_kmer_list(const string& ref){
         vector<kmer> result;
-        uint64_t old_minimizer, minimizer, last_minimizer;
+        uint64_t old_minimizer, minimizer;
         old_minimizer = minimizer = M_mask;
         uint64_t last_position(0);
         // FOREACH KMERtypedef string color;
@@ -181,10 +181,10 @@ class minimizerLister{
         result.push_back(canon);
         for (; i + K < ref.size() ; ++i) {
             updateK(seq, ref[i + K]);
-            canon=min(seq,rcb(seq,K)); 
+            canon=min(seq,rcb(seq,K));
             result.push_back(canon);
         }
-        sortAndRemoveDuplicates(result);
+        //sortAndRemoveDuplicates(result);
         return result;
     }
 
@@ -195,7 +195,7 @@ class minimizerLister{
             tmp=get_kmer_list(refs[i]);
             result.insert(result.end(),tmp.begin(),tmp.end());
         }
-        sortAndRemoveDuplicates(result);
+        //sortAndRemoveDuplicates(result);
         return result;
     }
 
@@ -233,7 +233,6 @@ class minimizerLister{
                 hash_min     = new_h;
                 position_min = i + K - M + 1;
             } else {
-                // the previous minimizer is outdated
                 if (i >= position_min) {
                     minimizer = get_minimizer_pos(seq, position_min);
                     hash_min  = get_hash(minimizer);
@@ -242,9 +241,7 @@ class minimizerLister{
             }
             // COMPUTE KMER MINIMIZER
             if(last_minimizer != old_minimizer){
-                // cout << "avant push : " << old_minimizer << endl;
                 result.push_back(old_minimizer);
-                // cout << "apres push" << endl;
                 last_minimizer = old_minimizer;
             }
             last_position = i + 1;

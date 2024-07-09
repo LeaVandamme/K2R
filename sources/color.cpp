@@ -211,7 +211,7 @@ void Color::serialize_color(icolor idcolor, zstr::ofstream& file){
 Color::Color(zstr::ifstream& file){
     file.read((char*)&this->compressed_array_size, sizeof(uint32_t));
     file.read((char*)&this->nb_elem_compressed, sizeof(uint32_t));
-    string localcompressed_array('0',this->compressed_array_size);
+    string localcompressed_array("0",this->compressed_array_size);
     file.read((char*)&localcompressed_array[0], this->compressed_array_size);
     this->compressed_array=localcompressed_array;
     file.read((char*)&this->nb_occ, sizeof(uint32_t));
@@ -248,12 +248,10 @@ uint64_t Color::hashtest(){
     uint64_t hash = 0;
     for(uint i =0; i<this->compressed_array_size-1; i++){
         char ch = this->compressed_array[i];
-        cout << int(ch) << endl;
         ch ^= ch >> 12;
         ch ^= ch << 25;
         ch ^= ch >> 27;
         hash ^= ch * 0x2545F4914F6CDD1DULL;
-        cout << hash << "  !"<< bitset<8>(ch).to_string() <<"!" <<endl;
     }
     for(uint i = 0; i<this->nb_elem_last;i++){
         uint32_t elem = this->last_id_reads[i];

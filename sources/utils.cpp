@@ -30,6 +30,7 @@ uint64_t countSharedSuccessiveElements(const vector<uint64_t>& vec1, const vecto
     uint64_t max = 0;
     uint64_t i = 0, j = 0;
     while (j < vec2.size()) {
+        //cout << vec1[i] << " " << vec2[j] << " " << count << " " << max << " " << i << " " << j << endl;
         if (vec1[i] != vec2[j]) {
             if(count > max){
                 max = count;

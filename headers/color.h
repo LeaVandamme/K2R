@@ -93,7 +93,9 @@ class Color{
         uint32_t get_compressed_array_size()const;
         string get_all_compressed() const;
         uint32_t get_nb_elem_last()const;
-        uint get_color_deleted()const{ return color_deleted;}
+        uint get_color_deleted()const{
+            return color_deleted;
+        }
         uint32_t get_nb_elem_compressed() const;
 
         void set_nb_occ(uint32_t nb_occ);
@@ -101,13 +103,13 @@ class Color{
         void set_compressed_array_size(uint32_t size);
         void set_nb_elem_last(uint32_t nb_elem_last);
         void set_nb_elem_compressed(uint32_t nb_elem_compressed);
-        uint64_t hashtest();
 
         void add_idread(iread id);
         void incremente_occurence();
         bool decremente_occurence(){
             this->set_nb_occ(this->get_nb_occ()-1);
             if(this->get_nb_occ() == 0) {
+                #pragma omp atomic
                 color_deleted++;
                 return true;
             }

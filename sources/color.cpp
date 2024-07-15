@@ -51,8 +51,6 @@ Color::Color(uint32_t compressed_array_size, string compressed_array, uint32_t n
 }
 
 
-
-
 bool Color::operator ==(const Color& c) const {
     bool equal = true;
     uint i = 0;
@@ -67,7 +65,6 @@ bool Color::operator ==(const Color& c) const {
     }
     return equal;
 }
-
 
 
 bool Color::operator !=(const Color& c)const{
@@ -103,14 +100,10 @@ uint32_t Color::get_nb_elem_compressed() const{
 }
 
 
-
-
-
 void Color::incremente_occurence(){
     uint32_t new_nbocc = this->get_nb_occ()+1;
     this->set_nb_occ(new_nbocc);
 }
-
 
 
 void Color::add_idread(iread id){
@@ -242,24 +235,4 @@ ostream &operator<<(std::ostream &os, const Color &c) {
     }
     os << " & " << c.get_nb_occ() << " : " << c.get_nb_ireads() << " (" << c.get_nb_elem_compressed() << " + " << c.get_nb_elem_last() << ")"<<flush;
     return os;
-}
-
-uint64_t Color::hashtest(){
-    uint64_t hash = 0;
-    for(uint i =0; i<this->compressed_array_size-1; i++){
-        char ch = this->compressed_array[i];
-        ch ^= ch >> 12;
-        ch ^= ch << 25;
-        ch ^= ch >> 27;
-        hash ^= ch * 0x2545F4914F6CDD1DULL;
-    }
-    for(uint i = 0; i<this->nb_elem_last;i++){
-        uint32_t elem = this->last_id_reads[i];
-        elem ^= elem >> 12;
-        elem ^= elem << 25;
-        elem ^= elem >> 27;
-        hash ^= elem * 0x2545F4914F6CDD1DULL;
-        //cout << hash << "   " << this->last_id_reads[i] << "  " << this->nb_elem_last <<endl;
-    }
-    return hash;
 }

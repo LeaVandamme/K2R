@@ -2,6 +2,7 @@
 #define _type
 
 #include <string>
+#include <stdint.h>
 
 using namespace std;
 

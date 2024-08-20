@@ -216,13 +216,12 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                         
                                         // ADD OR MODIFY IN KMER MAP
                                         list_mofif_mmap.push_back({mmer, color_register});
-                                        // cout << mmer << " ; " << color_register << endl;
                                         idmutex=0;
                                         map_current_read_color[idmutex].insert({idmutex, color_register});
-                                        // cout << idmutex << " " << color_register << endl;
                                         omp_unset_lock(&(map_current_read_color_mutex[idmutex]));
                                     }
                                 } else {
+                                    // SI JAMAIS LA NOUVELLE COULEUR N'EXISTE PAS ENCORE ON SUPPRIME PAS
                                     icolor previous_icolor(mmermap.at(mmer));
                                     uint32_t idmutex = previous_icolor%1024;
                                     omp_set_lock(&map_current_read_color_mutex[idmutex]);
@@ -244,29 +243,34 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                         omp_set_lock(&(color_map_mutex[idmutex]));
                                         previous_color = colormap[idmutex][previous_icolor];
                                         omp_unset_lock(&(color_map_mutex[idmutex]));
-                                        color_to_verify = Color(previous_color, num_read - 1);
-                                        #pragma omp critical(idc)
-                                        {
+                                        if(previous_color.get_nb_occ() == 1){
+                                            omp_set_lock(&(color_map_mutex[idmutex]));
+                                            colormap[idmutex][previous_icolor].add_idread(num_read-1);
+                                            omp_unset_lock(&(color_map_mutex[idmutex]));
+                                        }                                        
+                                        else{
+                                            color_to_verify = Color(previous_color, num_read - 1);
+                                            #pragma omp critical(idc)
+                                            {
+                                                color_register = current_id_color;
+                                                current_id_color++;
+                                            }
+                                            idmutex=color_register % 1024;
+                                            omp_set_lock(&(color_map_mutex[idmutex]));
+                                            add_color(colormap[idmutex], color_to_verify, color_register);
+                                            omp_unset_lock(&(color_map_mutex[idmutex]));
+                                            #pragma omp atomic
+                                            total_nb_color++;
                                             
-                                            color_register = current_id_color;
-                                            current_id_color++;
+                                            list_mofif_mmap.push_back({mmer, color_register});
+                                            idmutex = previous_icolor%1024;
+                                            map_current_read_color[idmutex].insert({previous_icolor, color_register});
+                                            idmutex=previous_icolor % 1024;
+                                            omp_set_lock(&(color_map_mutex[idmutex]));
+                                            decremente_color(colormap[idmutex], previous_icolor);
+                                            omp_unset_lock(&(color_map_mutex[idmutex]));
                                         }
-                                        
-                                        idmutex=color_register % 1024;
-                                        omp_set_lock(&(color_map_mutex[idmutex]));
-                                        add_color(colormap[idmutex], color_to_verify, color_register);
-                                        omp_unset_lock(&(color_map_mutex[idmutex]));
-                                        #pragma omp atomic
-                                        total_nb_color++;
-                                        
-                                        list_mofif_mmap.push_back({mmer, color_register});
-                                        idmutex = previous_icolor%1024;
-                                        map_current_read_color[idmutex].insert({previous_icolor, color_register});
                                         omp_unset_lock(&map_current_read_color_mutex[idmutex]);
-                                        idmutex=previous_icolor % 1024;
-                                        omp_set_lock(&(color_map_mutex[idmutex]));
-                                        decremente_color(colormap[idmutex], previous_icolor);
-                                        omp_unset_lock(&(color_map_mutex[idmutex]));
                                     }
                                 }
                             }

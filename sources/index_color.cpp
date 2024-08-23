@@ -131,6 +131,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             string ligne;
             vector<mmer> minimizer_list;
             bool eof = false;
+            int basic_color_id = -1;
+            uint32_t cpt_new_mmer;
             map_tmp_colors* map_current_read_color = new map_tmp_colors[1024];
             for(uint i = 0; i < 1024; i++) {
                 omp_init_lock(&(map_current_read_color_mutex[i]));
@@ -163,6 +165,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             map_current_read_color[i].clear();
                         }
                         minimizer_list.clear();
+                        basic_color_id = -1;
+                        cpt_new_mmer = 0;
                     }
 
                     uint64_t num_read = global_num_read;
@@ -176,8 +180,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         #pragma omp for
                         for(uint im = 0; im < minimizer_list.size(); im++) {
                             mmer mmer(minimizer_list[im]);
-                            // cout << mmer << endl;
-                            // cout << global_num_read << endl;
                             uint64_t mmer_hash, ind_to_insert;
                             Color color_to_verify;
                             Color previous_color;
@@ -186,42 +188,17 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             if(bf_bool[ind_to_insert / segment_size][ind_to_insert % segment_size]) {
                                 // IF KMER NOT IN MAP
                                 if (mmermap.find(mmer) == mmermap.end()) {
-                                    uint32_t idmutex = 0;
-                                    omp_set_lock(&(map_current_read_color_mutex[idmutex]));
-                                    auto it = map_current_read_color[idmutex].find(idmutex);
-                                    bool seen(it != map_current_read_color[idmutex].end());
-                                    if (seen) {
-                                        omp_unset_lock(&map_current_read_color_mutex[idmutex]);
-                                        list_mofif_mmap.push_back({mmer, it->second});
-                                        idmutex=it->second % 1024;
-                                        omp_set_lock(&(color_map_mutex[idmutex]));
-                                        incremente_color(colormap[idmutex], it->second);
-                                        omp_unset_lock(&(color_map_mutex[idmutex]));
-                                    } else {
-                                        color_to_verify = Color(num_read - 1);
-                                        #pragma omp critical (idc)
-                                        {
-                                            color_register = current_id_color;
+                                    #pragma omp atomic
+                                    cpt_new_mmer++;
+                                    #pragma omp critical (idc)
+                                    {
+                                        if(basic_color_id == -1){
+                                            basic_color_id = current_id_color;
                                             current_id_color++;
                                         }
-                                        
-                                        // #pragma omp flush(current_id_color)
-                                        // ADD OR INCREMENTE COLOR
-                                        idmutex=color_register % 1024;
-                                        omp_set_lock(&(color_map_mutex[idmutex]));
-                                        add_color(colormap[idmutex], color_to_verify, color_register);
-                                        omp_unset_lock(&(color_map_mutex[idmutex]));
-                                        #pragma omp atomic
-                                        total_nb_color++;
-                                        
-                                        // ADD OR MODIFY IN KMER MAP
-                                        list_mofif_mmap.push_back({mmer, color_register});
-                                        idmutex=0;
-                                        map_current_read_color[idmutex].insert({idmutex, color_register});
-                                        omp_unset_lock(&(map_current_read_color_mutex[idmutex]));
                                     }
-                                } else {
-                                    // SI JAMAIS LA NOUVELLE COULEUR N'EXISTE PAS ENCORE ON SUPPRIME PAS
+                                }    
+                                else {
                                     icolor previous_icolor(mmermap.at(mmer));
                                     uint32_t idmutex = previous_icolor%1024;
                                     omp_set_lock(&map_current_read_color_mutex[idmutex]);
@@ -275,10 +252,35 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 }
                             }
                         }
-                        // cout << "debut"<< endl;
-                        // for(int i = 0; i<list_mofif_mmap.size() ; i++){
-                        //     cout << list_mofif_mmap[i].first << list_mofif_mmap[i].second << endl;
-                        // }
+                        #pragma omp single
+                        {
+                        if(cpt_new_mmer != 0){
+                            Color basic_color = Color(num_read-1);
+                            basic_color.set_nb_occ(cpt_new_mmer);
+                            uint32_t idmutex = basic_color_id % 1024;
+                            omp_set_lock(&(color_map_mutex[idmutex]));
+                            add_color(colormap[idmutex], basic_color, basic_color_id);
+                            omp_unset_lock(&(color_map_mutex[idmutex]));
+                            #pragma omp atomic
+                            total_nb_color++;
+                            //#pragma omp for
+                            for(uint im = 0; im < minimizer_list.size(); im++) {
+                                mmer mmer(minimizer_list[im]);
+                                uint64_t mmer_hash, ind_to_insert;
+                                mmer_hash = revhash(mmer);
+                                ind_to_insert = mmer_hash & size_vect_mask;
+                                if(bf_bool[ind_to_insert / segment_size][ind_to_insert % segment_size]) {
+                                    if (mmermap.find(mmer) == mmermap.end()) {
+                                        #pragma omp critical (mmap)
+                                        {
+                                            mmermap[mmer] = basic_color_id;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        }
+
                         #pragma omp critical (mmap)
                         {
                             for(uint32_t imm = 0; imm < list_mofif_mmap.size(); imm++) {
@@ -289,11 +291,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     }
                 }
             }
-            // for(uint i=0;i<1024;i++){
-            //     for(auto elt : colormap[i]){
-            //         cout << elt.first << " : " << elt.second << endl;
-            //     }
-            // }
             fichier_scd.close();
             // COMPRESSION DU RESTE
             for(uint i = 0; i < 1024; i++) {
@@ -304,6 +301,13 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     it++;
                 }
             }
+
+            // for(uint i=0;i<1024;i++){
+            //     for(auto elt : colormap[i]){
+            //         cout << elt.first << " : " << elt.second << endl;
+            //     }
+            // }
+
             delete[] map_current_read_color; 
             clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_crea);
             clock_gettime(CLOCK_REALTIME, &end_crea_real);
@@ -312,7 +316,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             cout << "CPU Time for STEP 2 : " << seconds << " seconds." << endl;
             cout << "Wall-clock time for STEP 2 : " << seconds_real << " seconds." << endl;
             cout << endl;
-        } else {
+        }else {
             cerr << "Error opening the read file : " << read_file << endl;
         }
 

@@ -30,7 +30,6 @@ uint64_t countSharedSuccessiveElements(const vector<uint64_t>& vec1, const vecto
     uint64_t max = 0;
     uint64_t i = 0, j = 0;
     while (j < vec2.size()) {
-        //cout << vec1[i] << " " << vec2[j] << " " << count << " " << max << " " << i << " " << j << endl;
         if (vec1[i] != vec2[j]) {
             if(count > max){
                 max = count;
@@ -91,6 +90,13 @@ uint64_t xorshift64(uint64_t seed) {
     seed ^= seed << 25;
     seed ^= seed >> 27;
     return seed * 0x2545F4914F6CDD1DULL;
+}
+
+uint32_t xorshift32(uint32_t state) {
+    state ^= state << 13;
+    state ^= state >> 17;
+    state ^= state << 5;
+    return state;
 }
 
 

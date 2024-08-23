@@ -1,6 +1,7 @@
 #include "../headers/index_color.h"
 #include "../headers/MinimizerLister.h"
 #include "../headers/color.h"
+#include <algorithm>
 
 using namespace std;
 using namespace chrono;
@@ -171,9 +172,20 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
                     uint64_t num_read = global_num_read;
                     if (ligne.size() >= k) {
+                        uint64_t weird_int((ligne.size())/num_thread);
+                        vector<mmer> local_minimizer_list = ml.get_minimizer_list(ligne,omp_get_thread_num()*weird_int,(omp_get_thread_num()+1)*weird_int-k+1);
+                        // sort(local_minimizer_list.begin(),local_minimizer_list.end());//TODO ADD MERGE
+                        #pragma omp critical (ml)
+                        {
+                            // vector<mmer> local_minimizer_list_res(minimizer_list.size()+local_minimizer_list.size());
+                            // merge(minimizer_list.begin(),minimizer_list.end(),local_minimizer_list.begin(),local_minimizer_list.end(),local_minimizer_list_res.begin());
+                            // minimizer_list=local_minimizer_list_res;
+
+                            minimizer_list.insert(minimizer_list.end(),local_minimizer_list.begin(),local_minimizer_list.end());
+                        }
+                        #pragma omp barrier
                         #pragma omp single
                         {
-                            minimizer_list = ml.get_minimizer_list(ligne);
                             sortAndRemoveDuplicates(minimizer_list);
                         }
 
@@ -185,20 +197,19 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             Color previous_color;
                             mmer_hash = revhash(mmer);
                             ind_to_insert = mmer_hash & size_vect_mask;
-                            if(bf_bool[ind_to_insert / segment_size][ind_to_insert % segment_size]) {
+                            if(bf_bool[ind_to_insert / segment_size][ind_to_insert % segment_size] ) {
                                 // IF KMER NOT IN MAP
                                 if (mmermap.find(mmer) == mmermap.end()) {
                                     #pragma omp atomic
                                     cpt_new_mmer++;
-                                    #pragma omp critical (idc)
-                                    {
-                                        if(basic_color_id == -1){
-                                            basic_color_id = current_id_color;
+                                    if(basic_color_id == -1){
+                                        #pragma omp critical (idc)
+                                        {
+                                            basic_color_id = current_id_color++;
                                             current_id_color++;
                                         }
                                     }
-                                }    
-                                else {
+                                }else {
                                     icolor previous_icolor(mmermap.at(mmer));
                                     uint32_t idmutex = previous_icolor%1024;
                                     omp_set_lock(&map_current_read_color_mutex[idmutex]);
@@ -254,16 +265,18 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         }
                         #pragma omp single
                         {
-                        if(cpt_new_mmer != 0){
-                            Color basic_color = Color(num_read-1);
-                            basic_color.set_nb_occ(cpt_new_mmer);
-                            uint32_t idmutex = basic_color_id % 1024;
-                            omp_set_lock(&(color_map_mutex[idmutex]));
-                            add_color(colormap[idmutex], basic_color, basic_color_id);
-                            omp_unset_lock(&(color_map_mutex[idmutex]));
-                            #pragma omp atomic
-                            total_nb_color++;
-                            //#pragma omp for
+                            if(cpt_new_mmer != 0){
+                                Color basic_color = Color(num_read-1);
+                                basic_color.set_nb_occ(cpt_new_mmer);
+                                uint32_t idmutex = basic_color_id % 1024;
+                                omp_set_lock(&(color_map_mutex[idmutex]));
+                                add_color(colormap[idmutex], basic_color, basic_color_id);
+                                omp_unset_lock(&(color_map_mutex[idmutex]));
+                                #pragma omp atomic
+                                total_nb_color++;
+                            }
+                        }   
+                            #pragma omp for
                             for(uint im = 0; im < minimizer_list.size(); im++) {
                                 mmer mmer(minimizer_list[im]);
                                 uint64_t mmer_hash, ind_to_insert;
@@ -271,15 +284,12 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 ind_to_insert = mmer_hash & size_vect_mask;
                                 if(bf_bool[ind_to_insert / segment_size][ind_to_insert % segment_size]) {
                                     if (mmermap.find(mmer) == mmermap.end()) {
-                                        #pragma omp critical (mmap)
-                                        {
-                                            mmermap[mmer] = basic_color_id;
-                                        }
+                                        list_mofif_mmap.push_back({mmer, basic_color_id});
                                     }
                                 }
                             }
-                        }
-                        }
+                        
+                        
 
                         #pragma omp critical (mmap)
                         {
@@ -293,6 +303,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             }
             fichier_scd.close();
             // COMPRESSION DU RESTE
+            #pragma omp parallel for num_threads(num_thread)
             for(uint i = 0; i < 1024; i++) {
                 color_map::iterator it = colormap[i].begin();
                 while (it != colormap[i].end()) {

@@ -213,6 +213,7 @@ Color::Color(zstr::ifstream& file){
 
 
 string compress_color(vector<iread>& to_compress) {
+    sort(to_compress.begin(),to_compress.end());
     vector<unsigned char> compressed_vector(to_compress.size()*32,0);
     uint32_t compressed_vector_size = p4nd1enc32(to_compress.data(), to_compress.size() , compressed_vector.data());
     compressed_vector.resize(compressed_vector_size);

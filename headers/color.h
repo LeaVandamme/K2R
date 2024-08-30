@@ -46,6 +46,23 @@ class Color{
         Color(zstr::ifstream& file);
         ~Color();
 
+         bool operator<(const Color& other) const {
+        // Implement your comparison logic here.
+        // For example, compare based on compressed_array_size:
+        if (compressed_array_size < other.compressed_array_size) return true;
+        if (compressed_array_size > other.compressed_array_size) return false;
+
+        // If compressed_array_size is equal, compare by compressed_array:
+        if (compressed_array < other.compressed_array) return true;
+        if (compressed_array > other.compressed_array) return false;
+
+      
+
+        // If all members are equal, return false (they are not less than each other)
+        return false;
+    }
+
+
         Color& operator=(Color&& color) noexcept{
             this->compressed_array_size = color.compressed_array_size;
             this->nb_elem_compressed=color.nb_elem_compressed;

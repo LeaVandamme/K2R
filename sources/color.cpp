@@ -12,7 +12,7 @@ Color::Color(){
     for(uint i(0); i<Color::SIZEBUFFER; i++){
         this->last_id_reads[i] = 0;
     }
-    cout << "&&&&&&&&&&&&&&&&&&&&&&&&&&\t\tCreate color()"<< endl<<endl;
+    // cout << "&&&&&&&&&&&&&&&&&&&&&&&&&&\t\tCreate color()"<< endl<<endl;
 }
 
 Color::Color(iread id){

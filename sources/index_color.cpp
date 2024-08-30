@@ -50,6 +50,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         memset(counting_bf, 0, size_vect * 2);
         vector<omp_lock_t> nutex(1024);
         vector<pair<icolor,mmer>>* list_update = new vector<pair<icolor,mmer>>[1024];
+        vector<pair<Color, icolor>>* list_update2 = new vector<pair<Color, icolor>>[1024];
+
         omp_lock_t input_file_mutex, map_current_read_color_mutex[1024], color_map_mutex[1024], mmermap_mutex, list_update_mutex[1024];
         omp_init_lock(&input_file_mutex);
         omp_init_lock(&mmermap_mutex);
@@ -121,7 +123,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         clock_gettime(CLOCK_REALTIME, &end_bf_real);
         long seconds = end_bf.tv_sec - begin_index.tv_sec;
         long seconds_real = end_bf_real.tv_sec - begin_index_real.tv_sec;
-        cout << "CPU Time for STEP 1 : " << seconds << " seconds." << endl;
+        // cout << "CPU Time for STEP 1 : " << seconds << " seconds." << endl;
         cout << "Wall-clock time for STEP 1 : " << seconds_real << " seconds." << endl;
         cout << endl;
 
@@ -143,6 +145,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             #pragma omp parallel num_threads(num_thread)
             {
                 vector<pair<icolor, mmer>>* list_update_local = new vector<pair<icolor, mmer>>[1024];
+                vector<pair<Color, icolor>>* list_update_local2 = new vector<pair<Color,icolor>>[1024];
+
                 icolor current_id_color = 1;
                 minimizerLister ml = minimizerLister(k, m);
                 vector<mmer> cured_minimizer_list;
@@ -173,6 +177,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         minimizer_list.clear();
                         basic_color_id = -1;
                         cpt_new_mmer = 0;
+                        for(uint i =0; i<1024; i++){
+                            list_update[i].clear();
+                        }
                     }
 
                     #pragma omp barrier
@@ -209,6 +216,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         #pragma omp single
                         {
                             sortAndRemoveDuplicates(minimizer_list);
+                            // cout<<"le sort"<<endl;
                         }
 
                         #pragma omp barrier
@@ -222,80 +230,98 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 #pragma omp critical (cic)
                                 {
                                     if(basic_color_id.load() == -1){
-                                        int new_id(current_id_color*num_thread*1024+omp_get_thread_num());
+                                        int new_id((current_id_color*num_thread+omp_get_thread_num()));
                                         basic_color_id.store(new_id);
-                                        #pragma omp atomic
                                         current_id_color++;
                                     }
                                 }
                                 list_mofif_mmap.push_back({mmer, basic_color_id});
                             }else{
                                 //KMER IS NOT NEW
-                                uint32_t idmutex = (mmermap.at(mmer))%1024;
-                                list_update_local[((mmermap.at(mmer))%1024)].push_back({(mmermap.at(mmer)), mmer});
+                                icolor ic(mmermap.at(mmer));
+                                uint32_t idmutex = ic%1024;
+                                list_update_local[idmutex].push_back({ic, mmer});
                             }
                         }
-                        #pragma omp barrier
-                        #pragma omp for
+                        // #pragma omp single
+                        // {
+                        // cout<<"first phase"<<endl;
+                        // }
                         for(uint i=0; i<1024;i++){
                             sort(list_update_local[i].begin(), list_update_local[i].end());
                         }
 
                         for(uint i =0; i<1024; i++){
-                            list_update[i].clear();
                             if(list_update_local[i].size() != 0){
                                 omp_set_lock(&(list_update_mutex[i]));
-                                for(auto elt : list_update_local[i]){
-                                    list_update[i].push_back(elt); // TO DO MERGE
-                                }
+                                list_update[i].insert(list_update[i].end(),list_update_local[i].begin(),list_update_local[i].end());
                                 omp_unset_lock(&(list_update_mutex[i]));
+                                list_update_local[i].clear();
                             }
-                            list_update_local[i].clear();
                         }
-
-
+                        // #pragma omp single
+                        // {
+                        // cout<<"second phase"<<endl;
+                        // }
                         #pragma omp barrier
                         #pragma omp for
                         for(uint i = 0;i<1024;i++){
                             if(list_update[i].size() != 0){
-                                list_update[i].push_back({list_update[i][list_update[i].size()-1].first+1, 0});
                                 sort(list_update[i].begin(), list_update[i].end());
-                                uint32_t icolor = list_update[i][0].first;
+                                list_update[i].push_back({0, 0});
+                                
+                                icolor prev_color = list_update[i][0].first;
                                 uint cpt = 1;
                                 for(uint j = 1;j<list_update[i].size();j++){
-                                    if(list_update[i][j].first != icolor){
-                                        if(cpt == colormap[i][icolor].get_nb_occ()){
-                                            colormap[i][icolor].add_idread(global_num_read-1);
-                                        }
-                                        else{
-                                            int new_id;
-                                            Color color_to_insert = Color(colormap[i][icolor], global_num_read - 1);
-                                            #pragma omp critical (cic)
-                                            {
-                                                new_id = current_id_color*num_thread*1024+omp_get_thread_num();
-                                                #pragma omp atomic
-                                                current_id_color++;
-                                            }
+                                    if(list_update[i][j].first != prev_color){
+                                        if(cpt == colormap[i][prev_color].get_nb_occ()){
+                                            colormap[i][prev_color].add_idread(global_num_read-1);
+                                        }else{
+                                            Color color_to_insert = Color(colormap[i][prev_color], global_num_read - 1);
+                                            icolor new_id = (current_id_color*num_thread+omp_get_thread_num());
+                                            current_id_color++;
                                             for(uint ii = 0; ii<cpt; ii++){
                                                 list_mofif_mmap.push_back({list_update[i][j-cpt+ii].second,new_id});
                                             }
                                             color_to_insert.set_nb_occ(cpt);
-                                            add_color(colormap[i], color_to_insert, new_id);
+                                            // add_color(colormap[new_id%1024], color_to_insert, new_id);
+                                            list_update_local2[new_id%1024].push_back({color_to_insert, new_id});
 
-                                            colormap[i][icolor].set_nb_occ(colormap[i][icolor].get_nb_occ()-cpt);
+                                            colormap[i][prev_color].set_nb_occ(colormap[i][prev_color].get_nb_occ()-cpt);
                                             #pragma omp atomic
                                             total_nb_color++;
                                         }
                                         cpt = 1;
-                                        icolor = list_update[i][j].first;
-                                    }
-                                    else{
+                                        prev_color = list_update[i][j].first;
+                                    }else{
                                         cpt++;
                                     }
                                 }
                             }
                         }
-
+                        for(uint i =0; i<1024; i++){
+                            if(list_update_local2[i].size() != 0){
+                                omp_set_lock(&(list_update_mutex[i]));
+                                list_update2[i].insert(list_update2[i].end(),list_update_local2[i].begin(),list_update_local2[i].end());
+                                omp_unset_lock(&(list_update_mutex[i]));
+                                list_update_local2[i].clear();
+                            }
+                        }
+                        #pragma omp barrier
+                        #pragma omp for
+                        for(uint i = 0;i<1024;i++){
+                            if(list_update2[i].size() != 0){
+                                sort(list_update2[i].begin(), list_update2[i].end());
+                                for(uint j = 0;j<list_update2[i].size();j++){
+                                    add_color(colormap[i], list_update2[i][j].first, list_update2[i][j].second);
+                                }
+                                list_update2[i].clear();
+                            }
+                        }
+                        // #pragma omp single
+                        // {
+                        // cout<<"third phase"<<endl;
+                        // }
                         #pragma omp barrier
                         #pragma omp single
                         {
@@ -304,7 +330,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 uint32_t idmutex = basic_color_id % 1024;
                                 add_color(colormap[idmutex], basic_color, basic_color_id);
                                 colormap[idmutex][basic_color_id].set_nb_occ(cpt_new_mmer);
-
                                 #pragma omp atomic
                                 total_nb_color++;
                             }
@@ -341,7 +366,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             clock_gettime(CLOCK_REALTIME, &end_crea_real);
             auto seconds = end_crea.tv_sec - end_bf.tv_sec;
             auto seconds_real = end_crea_real.tv_sec - end_bf_real.tv_sec;
-            cout << "CPU Time for STEP 2 : " << seconds << " seconds." << endl;
+            // cout << "CPU Time for STEP 2 : " << seconds << " seconds." << endl;
             cout << "Wall-clock time for STEP 2 : " << seconds_real << " seconds." << endl;
             cout << endl;
         }else {
@@ -360,18 +385,18 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     clock_gettime(CLOCK_REALTIME, &end_index_real);
     auto seconds = end_index.tv_sec - begin_index.tv_sec;
     auto seconds_real = end_index_real.tv_sec - begin_index_real.tv_sec;
-    cout << "Total CPU time : " << seconds << " seconds." << endl;
-    cout << "Total wall-clock time : " << seconds_real << " seconds." << endl;
-    cout << endl << "KEY NUMBERS" << endl;
-    cout << "=========================================================" << endl << endl;
+    // cout << "Total CPU time : " << seconds << " seconds." << endl;
+    // cout << "Total wall-clock time : " << seconds_real << " seconds." << endl;
+    // cout << endl << "KEY NUMBERS" << endl;
+    // cout << "=========================================================" << endl << endl;
 
     cout << "M-mer indexed : " << intToString(mmermap.size()) << endl;
     cout << "Color indexed : " << intToString(colormap_entries) << endl;
-    cout << "\t Total color created : " << intToString(total_nb_color) << endl;
-    cout << "\t Total color deleted : " << intToString(Color::color_deleted) << endl << endl;
-    cout << "Number of reads in the file : "  << intToString(global_num_read) << endl;
-    cout << "Average number of read in a color : " << to_string(static_cast<double>(av_nb_iread)/colormap_entries) << endl;
-    cout << "Ratio color indexed/mmer indexed : " << to_string(static_cast<double>(colormap_entries)/mmermap.size()) << endl << endl;
+    // cout << "\t Total color created : " << intToString(total_nb_color) << endl;
+    // cout << "\t Total color deleted : " << intToString(Color::color_deleted) << endl << endl;
+    // cout << "Number of reads in the file : "  << intToString(global_num_read) << endl;
+    // cout << "Average number of read in a color : " << to_string(static_cast<double>(av_nb_iread)/colormap_entries) << endl;
+    // cout << "Ratio color indexed/mmer indexed : " << to_string(static_cast<double>(colormap_entries)/mmermap.size()) << endl << endl;
 
     double somme_taille_c = 0, somme_taille_colorid_cmap = 0, somme_taille_colorid_mmermap = 0, somme_taille_mmerid_mmermap = 0;
     for(uint i = 0; i < 1024; i++) {
@@ -385,9 +410,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     somme_taille_mmerid_mmermap = mmermap.size() * 8;
     somme_taille_colorid_mmermap = mmermap.size() * 4;
     somme_taille_colorid_cmap = colormap_entries * 8;
-    cout << "M-mer map size : " << (somme_taille_mmerid_mmermap + somme_taille_colorid_mmermap) / 1000000 << " Mo." << endl;
-    cout << "Color map size : " << (somme_taille_colorid_cmap + somme_taille_c) / 1000000 << " Mo." << endl;
-    cout << "Compressed color size : " << somme_taille_c / 1000000 << " Mo." << endl << endl;
+    // cout << "M-mer map size : " << (somme_taille_mmerid_mmermap + somme_taille_colorid_mmermap) / 1000000 << " Mo." << endl;
+    // cout << "Color map size : " << (somme_taille_colorid_cmap + somme_taille_c) / 1000000 << " Mo." << endl;
+    // cout << "Compressed color size : " << somme_taille_c / 1000000 << " Mo." << endl << endl;
 }
 
 

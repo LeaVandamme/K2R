@@ -186,7 +186,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
                     #pragma omp barrier
 
-                    if (ligne.size() >= k) { // SI LA TAILLE DU TRONCON EST < K : MONOTHREAD
+                    if (ligne.size() >= k) {
                         uint32_t multi_begin, multi_end;
                         uint64_t num_read = global_num_read;
                         uint32_t ligne_size = ligne.size();
@@ -233,7 +233,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         #pragma omp for
                         for(uint im = 0; im < minimizer_list.size(); im++){
                             mmer mmer(minimizer_list[im]);
-                            // IF KMER NOT IN MAP
                             if (mmermap.find(mmer) == mmermap.end()) {
                                 #pragma omp atomic
                                 cpt_new_mmer++;
@@ -403,9 +402,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     somme_taille_mmerid_mmermap = mmermap.size() * 8;
     somme_taille_colorid_mmermap = mmermap.size() * 4;
     somme_taille_colorid_cmap = colormap_entries * 8;
-    // cout << "M-mer map size : " << (somme_taille_mmerid_mmermap + somme_taille_colorid_mmermap) / 1000000 << " Mo." << endl;
-    // cout << "Color map size : " << (somme_taille_colorid_cmap + somme_taille_c) / 1000000 << " Mo." << endl;
-    // cout << "Compressed color size : " << somme_taille_c / 1000000 << " Mo." << endl << endl;
 }
 
 

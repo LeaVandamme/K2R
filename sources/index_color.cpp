@@ -192,15 +192,24 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         uint32_t ligne_size = ligne.size();
                         uint64_t taille_sep((ligne_size)/num_thread);
                         uint64_t nb_sep(ligne_size/taille_sep);
-                        if(omp_get_thread_num() == 0){
-                            multi_begin = 0;
-                        }else{
-                            multi_begin = (omp_get_thread_num()*taille_sep)-((k-1)/2);
+                        if(taille_sep > k){
+                            if(omp_get_thread_num() == 0){
+                                multi_begin = 0;
+                            }else{
+                                multi_begin = (omp_get_thread_num()*taille_sep)-((k-1)/2);
+                            }
+                            multi_end = ((omp_get_thread_num()+1)*taille_sep)+((k-1)/2);
+                            if(multi_end > ligne_size){
+                                multi_end = ligne_size;
+                            }
                         }
-                        multi_end = ((omp_get_thread_num()+1)*taille_sep)+((k-1)/2);
-                        if(multi_end > ligne_size){
+                        else{
+                            taille_sep = ligne_size;
+                            nb_sep = 1;
+                            multi_begin = 0;
                             multi_end = ligne_size;
                         }
+
                         vector<mmer> draft_minimizer_list = ml.get_minimizer_list(ligne,multi_begin,multi_end);
                         vector<mmer> local_minimizer_list;
                         for(uint im = 0; im < draft_minimizer_list.size(); im++){

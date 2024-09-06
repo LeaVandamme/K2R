@@ -43,7 +43,6 @@ Color::Color(const Color& color, iread id){
         this->last_id_reads[i] = color.last_id_reads[i];
     }
     this->add_idread(id);
-    // cout << "&&&&&&&&&&&&&&&&&&&&&&&&&&\t\tCreate color(color,id)"<< endl<<endl;
 }
 
 Color::Color(uint32_t compressed_array_size, string compressed_array, uint32_t nb_occ, uint32_t nb_elem_compressed){
@@ -114,7 +113,6 @@ void Color::add_idread(iread id){
     if(this->get_nb_elem_last() == 0){
         this->last_id_reads[0] = id;
         this->set_nb_elem_last(1);
-        // this->nb_occ = 1;
     }
     else if(id != this->last_id_reads[this->nb_elem_last-1]){
         if(this->get_nb_elem_last()== Color::SIZEBUFFER){
@@ -128,13 +126,11 @@ void Color::add_idread(iread id){
             }
             this->last_id_reads[0] = id;
             this->set_nb_elem_last(1);
-            // this->nb_occ = 1;
         }
         else{
             this->last_id_reads[this->get_nb_elem_last()] = id;
             uint nb(this->get_nb_elem_last());
             this->set_nb_elem_last(nb+1);
-            // this->nb_occ = 1;
         }
     }
 }

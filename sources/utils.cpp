@@ -8,20 +8,14 @@
 using namespace std;
 
 void sortAndRemoveDuplicates(vector<uint32_t>& vec) {
-    // Sort the vector
     std::sort(vec.begin(), vec.end());
-    // Use std::unique to remove consecutive duplicates
     auto lastUnique = std::unique(vec.begin(), vec.end());
-    // Resize the vector to remove the non-unique elements
     vec.erase(lastUnique, vec.end());
 }
 
 void sortAndRemoveDuplicates(vector<uint64_t>& vec) {
-    // Sort the vector
     std::sort(vec.begin(), vec.end());
-    // Use std::unique to remove consecutive duplicates
     auto lastUnique = std::unique(vec.begin(), vec.end());
-    // Resize the vector to remove the non-unique elements
     vec.erase(lastUnique, vec.end());
 }
 

@@ -46,13 +46,14 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         uint64_t size_vect = 1;
         size_vect <<= counting_bf_size;
         uint64_t size_vect_mask = size_vect - 1;
-        uint16_t* counting_bf = new uint16_t[size_vect];
-        memset(counting_bf, 0, size_vect * 2);
-        vector<omp_lock_t> nutex(1024);
+        vect_counting_bf* counting_bf_tab = new vect_counting_bf[1024];
+        for(uint i =0;i<1024;i++){
+            counting_bf_tab[i].resize(size_vect/1024, 0);
+        }
         vector<pair<icolor,mmer>>* list_update = new vector<pair<icolor,mmer>>[1024];
         vector<pair<Color, icolor>>* list_update2 = new vector<pair<Color, icolor>>[1024];
 
-        omp_lock_t input_file_mutex, map_current_read_color_mutex[1024], color_map_mutex[1024], mmermap_mutex, list_update_mutex[1024];
+        omp_lock_t input_file_mutex, map_current_read_color_mutex[1024], color_map_mutex[1024], mmermap_mutex, list_update_mutex[1024], nutex[1024];
         omp_init_lock(&input_file_mutex);
         omp_init_lock(&mmermap_mutex);
         for(uint i = 0; i < 1024; i++) {
@@ -68,6 +69,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             minimizerLister ml = minimizerLister(k, m);
             vector<mmer> minimizer_list_tmp;
             while(!fichier.eof()) {
+                ligne.clear();
                 omp_set_lock(&input_file_mutex);
                 header_line_pos.push_back(fichier.tellg());
                 getline(fichier, ligne);
@@ -83,15 +85,17 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     for(mmer mmer : minimizer_list_tmp) {
                         mmer_hash = revhash(mmer);
                         ind_to_insert = mmer_hash & size_vect_mask;
-                        omp_set_lock(&nutex[ind_to_insert % 1024]);
+                        uint64_t vect_num = ind_to_insert %1024;
+                        uint64_t tab_indice = ind_to_insert/1024;
+                        omp_set_lock(&nutex[vect_num]);
                         if(keep_all) {
-                            counting_bf[ind_to_insert]++;
+                            counting_bf_tab[vect_num][tab_indice]++;
                         } else {
-                            if(counting_bf[ind_to_insert] < max_ab) {
-                                counting_bf[ind_to_insert]++;
+                            if(counting_bf_tab[vect_num][tab_indice] < max_ab) {
+                                counting_bf_tab[vect_num][tab_indice]++;
                             }
                         }
-                        omp_unset_lock(&nutex[ind_to_insert % 1024]);
+                        omp_unset_lock(&nutex[vect_num]);
                     }
                 }
             }
@@ -105,25 +109,24 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             bf_bool[i].resize(segment_size, false);
             for(uint64_t ii = 0; ii < segment_size; ii++) {
                 if(keep_all) {
-                    if(counting_bf[i * segment_size + ii] >= 1) {
+                    if(counting_bf_tab[i][ii] >= 1) {
                         bf_bool[i][ii] = true;
                     }
                 } else {
-                    if(counting_bf[i * segment_size + ii] >= min_ab && counting_bf[i * segment_size + ii] < max_ab) {
+                    if(counting_bf_tab[i][ii] >= min_ab && counting_bf_tab[i][ii] < max_ab) {
                         bf_bool[i][ii] = true;
                     }
                 }
             }
         }
-
-        delete[] counting_bf;
+        delete[] counting_bf_tab;
+        #pragma omp barrier
 
         // SECOND PASS
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_bf);
         clock_gettime(CLOCK_REALTIME, &end_bf_real);
         long seconds = end_bf.tv_sec - begin_index.tv_sec;
         long seconds_real = end_bf_real.tv_sec - begin_index_real.tv_sec;
-        // cout << "CPU Time for STEP 1 : " << seconds << " seconds." << endl;
         cout << "Wall-clock time for STEP 1 : " << seconds_real << " seconds." << endl;
         cout << endl;
 
@@ -132,7 +135,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         zstr::ifstream fichier_scd(read_file, ios::in);
 
         if(fichier_scd) {
-            // atomic<icolor> current_id_color = 1;
             string ligne;
             vector<mmer> minimizer_list;
             bool eof = false;
@@ -184,18 +186,18 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
                     #pragma omp barrier
 
-                    if (ligne.size() >= k) {
+                    if (ligne.size() >= k) { // SI LA TAILLE DU TRONCON EST < K : MONOTHREAD
                         uint32_t multi_begin, multi_end;
                         uint64_t num_read = global_num_read;
                         uint32_t ligne_size = ligne.size();
-                        uint64_t taille_sep((ligne_size)/num_thread+k);
+                        uint64_t taille_sep((ligne_size)/num_thread);
                         uint64_t nb_sep(ligne_size/taille_sep);
                         if(omp_get_thread_num() == 0){
                             multi_begin = 0;
                         }else{
-                            multi_begin = (omp_get_thread_num()*taille_sep)-((k-1));
+                            multi_begin = (omp_get_thread_num()*taille_sep)-((k-1)/2);
                         }
-                        multi_end = ((omp_get_thread_num()+1)*taille_sep);
+                        multi_end = ((omp_get_thread_num()+1)*taille_sep)+((k-1)/2);
                         if(multi_end > ligne_size){
                             multi_end = ligne_size;
                         }
@@ -204,7 +206,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         for(uint im = 0; im < draft_minimizer_list.size(); im++){
                             uint64_t mmer_hash = revhash(draft_minimizer_list[im]);
                             uint64_t ind_to_insert = mmer_hash & size_vect_mask;
-                            if(bf_bool[ind_to_insert / segment_size][ind_to_insert % segment_size] ) {
+                            if(bf_bool[ind_to_insert % 1024][ind_to_insert/1024] ) {
                                 local_minimizer_list.push_back(draft_minimizer_list[im]);
                             }
                         }
@@ -216,7 +218,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         #pragma omp single
                         {
                             sortAndRemoveDuplicates(minimizer_list);
-                            // cout<<"le sort"<<endl;
                         }
 
                         #pragma omp barrier
@@ -237,16 +238,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 }
                                 list_mofif_mmap.push_back({mmer, basic_color_id});
                             }else{
-                                //KMER IS NOT NEW
                                 icolor ic(mmermap.at(mmer));
                                 uint32_t idmutex = ic%1024;
                                 list_update_local[idmutex].push_back({ic, mmer});
                             }
                         }
-                        // #pragma omp single
-                        // {
-                        // cout<<"first phase"<<endl;
-                        // }
                         for(uint i=0; i<1024;i++){
                             sort(list_update_local[i].begin(), list_update_local[i].end());
                         }
@@ -259,10 +255,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 list_update_local[i].clear();
                             }
                         }
-                        // #pragma omp single
-                        // {
-                        // cout<<"second phase"<<endl;
-                        // }
                         #pragma omp barrier
                         #pragma omp for
                         for(uint i = 0;i<1024;i++){
@@ -284,7 +276,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                                 list_mofif_mmap.push_back({list_update[i][j-cpt+ii].second,new_id});
                                             }
                                             color_to_insert.set_nb_occ(cpt);
-                                            // add_color(colormap[new_id%1024], color_to_insert, new_id);
                                             list_update_local2[new_id%1024].push_back({color_to_insert, new_id});
 
                                             colormap[i][prev_color].set_nb_occ(colormap[i][prev_color].get_nb_occ()-cpt);
@@ -318,10 +309,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 list_update2[i].clear();
                             }
                         }
-                        // #pragma omp single
-                        // {
-                        // cout<<"third phase"<<endl;
-                        // }
                         #pragma omp barrier
                         #pragma omp single
                         {
@@ -366,7 +353,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             clock_gettime(CLOCK_REALTIME, &end_crea_real);
             auto seconds = end_crea.tv_sec - end_bf.tv_sec;
             auto seconds_real = end_crea_real.tv_sec - end_bf_real.tv_sec;
-            // cout << "CPU Time for STEP 2 : " << seconds << " seconds." << endl;
             cout << "Wall-clock time for STEP 2 : " << seconds_real << " seconds." << endl;
             cout << endl;
         }else {
@@ -385,18 +371,16 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     clock_gettime(CLOCK_REALTIME, &end_index_real);
     auto seconds = end_index.tv_sec - begin_index.tv_sec;
     auto seconds_real = end_index_real.tv_sec - begin_index_real.tv_sec;
-    // cout << "Total CPU time : " << seconds << " seconds." << endl;
-    // cout << "Total wall-clock time : " << seconds_real << " seconds." << endl;
-    // cout << endl << "KEY NUMBERS" << endl;
-    // cout << "=========================================================" << endl << endl;
+    cout << "Total wall-clock time : " << seconds_real << " seconds." << endl;
+    cout << endl << "KEY NUMBERS" << endl;
+    cout << "=========================================================" << endl << endl;
 
     cout << "M-mer indexed : " << intToString(mmermap.size()) << endl;
     cout << "Color indexed : " << intToString(colormap_entries) << endl;
-    // cout << "\t Total color created : " << intToString(total_nb_color) << endl;
-    // cout << "\t Total color deleted : " << intToString(Color::color_deleted) << endl << endl;
-    // cout << "Number of reads in the file : "  << intToString(global_num_read) << endl;
-    // cout << "Average number of read in a color : " << to_string(static_cast<double>(av_nb_iread)/colormap_entries) << endl;
-    // cout << "Ratio color indexed/mmer indexed : " << to_string(static_cast<double>(colormap_entries)/mmermap.size()) << endl << endl;
+    cout << "\t Total color created : " << intToString(total_nb_color) << endl;
+    cout << "Number of reads in the file : "  << intToString(global_num_read) << endl;
+    cout << "Average number of read in a color : " << to_string(static_cast<double>(av_nb_iread)/colormap_entries) << endl;
+    cout << "Ratio color indexed/mmer indexed : " << to_string(static_cast<double>(colormap_entries)/mmermap.size()) << endl << endl;
 
     double somme_taille_c = 0, somme_taille_colorid_cmap = 0, somme_taille_colorid_mmermap = 0, somme_taille_mmerid_mmermap = 0;
     for(uint i = 0; i < 1024; i++) {

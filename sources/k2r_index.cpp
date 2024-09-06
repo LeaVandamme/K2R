@@ -137,6 +137,7 @@ int main(int argc, char *argv[]){
         if (argc < 2){
             PrintHelp();
         }
+
         Index_color index_color = Index_color(read_file, k, m, counting_bf_size, binary_prefix);
 
         string file_out, prefix_binary_file, binary_file_mmermap, binary_file_colormap;

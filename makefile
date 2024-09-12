@@ -1,8 +1,8 @@
 CC = g++
 
-CFLAGS= -O3 -g -std=c++17 -Wall  -w -fopenmp 
-CFLAGS_DELTA= -O3 -std=c++17 -Wall -w
-LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread  -lpthread -lz -fopenmp
+CFLAGS= -O3 -g -std=c++17 -Wall  -w -fopenmp -flto
+CFLAGS_DELTA= -O3 -std=c++17 -Wall -w -flto
+LDFLAGS = -LTurboPFor-Integer-Compression -l:libic.a -pthread  -lpthread -lz -fopenmp -flto
 
 PREXEC = turboPFor_compile
 EXEC = k2r_index k2r_query test_colors

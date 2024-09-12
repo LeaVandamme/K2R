@@ -135,8 +135,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         zstr::ifstream fichier_scd(read_file, ios::in);
 
         if(fichier_scd) {
-            string ligne;
-            vector<mmer> minimizer_list;
+            vector<mmer>* minimizer_list=new vector<mmer>[num_thread];
             bool eof = false;
             atomic<int> basic_color_id = -1;
             uint32_t cpt_new_mmer = 0;
@@ -146,8 +145,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             }
             #pragma omp parallel num_threads(num_thread)
             {
+                string ligne;
                 vector<pair<icolor, mmer>>* list_update_local = new vector<pair<icolor, mmer>>[1024];
                 vector<pair<Color, icolor>>* list_update_local2 = new vector<pair<Color,icolor>>[1024];
+                vector<mmer> draft_minimizer_list,local_minimizer_list;
 
                 icolor current_id_color = 1;
                 minimizerLister ml = minimizerLister(k, m);
@@ -155,153 +156,125 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                 vector<pair<mmer, icolor>> list_mofif_mmap;
                 icolor color_register = 0;
                 while(!eof) {
-                    #pragma omp barrier
-                    #pragma omp single
+                    ligne.clear();
+                    #pragma omp critical (file)
                     {
-                        ligne.clear();
-                        getline(fichier_scd, ligne);
-                        getline(fichier_scd, ligne);
-                        eof = fichier_scd.eof();
-                        if (ligne.size() >= k) {
-                            global_num_read++;
-                            if(homocomp) {
-                                ligne = homocompression(ligne);
+                        if(not eof){
+                            getline(fichier_scd, ligne);
+                            getline(fichier_scd, ligne);
+                            eof = fichier_scd.eof();
+                        }
+                    }
+                    if (ligne.size() >= k) {
+                        #pragma omp atomic
+                        global_num_read++;
+                        if(homocomp) {
+                            ligne = homocompression(ligne);
+                        }
+                        if(global_num_read % 10000 == 0) {
+                            cerr << "\r" << global_num_read << flush;
+                        }
+                        uint64_t curr_id(0);
+                        minimizer_list[omp_get_thread_num()] = ml.get_minimizer_list(ligne);
+                        for (uint im = 0; im < minimizer_list[omp_get_thread_num()].size(); im++) {
+                            uint64_t mmer_hash = revhash(minimizer_list[omp_get_thread_num()][im]);
+                            uint64_t ind_to_insert = mmer_hash & size_vect_mask;
+                            if (bf_bool[ind_to_insert % 1024][ind_to_insert / 1024]) {
+                                minimizer_list[omp_get_thread_num()][curr_id++]=minimizer_list[omp_get_thread_num()][im];
                             }
-                            if(global_num_read % 10000 == 0) {
-                                cerr << "\r" << global_num_read << flush;
-                            }
-                        } else {
-                            ligne.clear();
                         }
-                        for(uint i = 0; i < 1024; i++) {
-                            map_current_read_color[i].clear();
-                        }
-                        minimizer_list.clear();
-                        basic_color_id = -1;
-                        cpt_new_mmer = 0;
-                        for(uint i =0; i<1024; i++){
-                            list_update[i].clear();
-                        }
+                        minimizer_list[omp_get_thread_num()].resize(curr_id);
+                        sortAndRemoveDuplicates(minimizer_list[omp_get_thread_num()]);
                     }
 
                     #pragma omp barrier
 
-                    if (ligne.size() >= k) {
-                        uint32_t multi_begin, multi_end;
-                        uint64_t num_read = global_num_read;
-                        uint32_t ligne_size = ligne.size();
-                        uint64_t taille_sep((ligne_size)/num_thread);
-                        uint64_t nb_sep(ligne_size/taille_sep);
-                        if(taille_sep > k){
-                            if(omp_get_thread_num() == 0){
-                                multi_begin = 0;
-                            }else{
-                                multi_begin = (omp_get_thread_num()*taille_sep)-((k-1)/2);
-                            }
-                            multi_end = ((omp_get_thread_num()+1)*taille_sep)+((k-1)/2);
-                            if(multi_end > ligne_size){
-                                multi_end = ligne_size;
-                            }
-                        }
-                        else{
-                            taille_sep = ligne_size;
-                            nb_sep = 1;
-                            multi_begin = 0;
-                            multi_end = ligne_size;
-                        }
-
-                        vector<mmer> draft_minimizer_list = ml.get_minimizer_list(ligne,multi_begin,multi_end);
-                        vector<mmer> local_minimizer_list;
-                        for(uint im = 0; im < draft_minimizer_list.size(); im++){
-                            uint64_t mmer_hash = revhash(draft_minimizer_list[im]);
-                            uint64_t ind_to_insert = mmer_hash & size_vect_mask;
-                            if(bf_bool[ind_to_insert % 1024][ind_to_insert/1024] ) {
-                                local_minimizer_list.push_back(draft_minimizer_list[im]);
-                            }
-                        }
-                        #pragma omp critical (ml)
-                        {
-                            minimizer_list.insert(minimizer_list.end(),local_minimizer_list.begin(),local_minimizer_list.end());
-                        }
-                        #pragma omp barrier
+                    for(uint32_t i_read(0);i_read<num_thread;i_read++){
                         #pragma omp single
                         {
-                            sortAndRemoveDuplicates(minimizer_list);
+                            for(uint i = 0; i < 1024; i++) {
+                                map_current_read_color[i].clear();
+                            }
+                            basic_color_id = -1;
+                            cpt_new_mmer = 0;
+                            for(uint i =0; i<1024; i++){
+                                list_update[i].clear();
+                            }   
                         }
-
-                        #pragma omp barrier
+                        //PHASE 1
                         #pragma omp for
-                        for(uint im = 0; im < minimizer_list.size(); im++){
-                            mmer mmer(minimizer_list[im]);
+                        for (uint im = 0; im < minimizer_list[i_read].size(); im++) {
+                            mmer mmer(minimizer_list[i_read][im]);
                             if (mmermap.find(mmer) == mmermap.end()) {
                                 #pragma omp atomic
                                 cpt_new_mmer++;
                                 #pragma omp critical (cic)
                                 {
-                                    if(basic_color_id.load() == -1){
-                                        int new_id((current_id_color*num_thread+omp_get_thread_num()));
-                                        basic_color_id.store(new_id);
+                                    if (basic_color_id == -1) {
+                                        int new_id((current_id_color * num_thread + omp_get_thread_num()));
+                                        basic_color_id = new_id;
                                         current_id_color++;
                                     }
                                 }
                                 list_mofif_mmap.push_back({mmer, basic_color_id});
-                            }else{
+                            } else {
                                 icolor ic(mmermap.at(mmer));
-                                uint32_t idmutex = ic%1024;
+                                uint32_t idmutex = ic % 1024;
                                 list_update_local[idmutex].push_back({ic, mmer});
                             }
                         }
-                        for(uint i=0; i<1024;i++){
-                            sort(list_update_local[i].begin(), list_update_local[i].end());
-                        }
-
-                        for(uint i =0; i<1024; i++){
-                            if(list_update_local[i].size() != 0){
+                        //PHASE 2
+                        for (uint i = 0; i < 1024; i++) {
+                            if (list_update_local[i].size() != 0) {
+                                sort(list_update_local[i].begin(), list_update_local[i].end());
                                 omp_set_lock(&(list_update_mutex[i]));
-                                list_update[i].insert(list_update[i].end(),list_update_local[i].begin(),list_update_local[i].end());
+                                list_update[i].insert(list_update[i].end(), list_update_local[i].begin(), list_update_local[i].end());
                                 omp_unset_lock(&(list_update_mutex[i]));
                                 list_update_local[i].clear();
                             }
                         }
+                        //PHASE 3
                         #pragma omp barrier
+                        auto start_phase_3 = high_resolution_clock::now(); // Start timer for phase 3
                         #pragma omp for
-                        for(uint i = 0;i<1024;i++){
-                            if(list_update[i].size() != 0){
+                        for (uint i = 0; i < 1024; i++) {
+                            if (list_update[i].size() != 0) {
                                 sort(list_update[i].begin(), list_update[i].end());
                                 list_update[i].push_back({0, 0});
-                                
+
                                 icolor prev_color = list_update[i][0].first;
                                 uint cpt = 1;
-                                for(uint j = 1;j<list_update[i].size();j++){
-                                    if(list_update[i][j].first != prev_color){
-                                        if(cpt == colormap[i][prev_color].get_nb_occ()){
-                                            colormap[i][prev_color].add_idread(global_num_read-1);
-                                        }else{
+                                for (uint j = 1; j < list_update[i].size(); j++) {
+                                    if (list_update[i][j].first != prev_color) {
+                                        if (cpt == colormap[i][prev_color].get_nb_occ()) {
+                                            colormap[i][prev_color].add_idread(global_num_read - 1);
+                                        } else {
                                             Color color_to_insert = Color(colormap[i][prev_color], global_num_read - 1);
-                                            icolor new_id = (current_id_color*num_thread+omp_get_thread_num());
+                                            icolor new_id = (current_id_color * num_thread + omp_get_thread_num());
                                             current_id_color++;
-                                            for(uint ii = 0; ii<cpt; ii++){
-                                                list_mofif_mmap.push_back({list_update[i][j-cpt+ii].second,new_id});
+                                            for (uint ii = 0; ii < cpt; ii++) {
+                                                list_mofif_mmap.push_back({list_update[i][j - cpt + ii].second, new_id});
                                             }
                                             color_to_insert.set_nb_occ(cpt);
-                                            list_update_local2[new_id%1024].push_back({color_to_insert, new_id});
+                                            list_update_local2[new_id % 1024].push_back({color_to_insert, new_id});
 
-                                            colormap[i][prev_color].set_nb_occ(colormap[i][prev_color].get_nb_occ()-cpt);
+                                            colormap[i][prev_color].set_nb_occ(colormap[i][prev_color].get_nb_occ() - cpt);
                                             #pragma omp atomic
                                             total_nb_color++;
                                         }
                                         cpt = 1;
                                         prev_color = list_update[i][j].first;
-                                    }else{
+                                    } else {
                                         cpt++;
                                     }
                                 }
                             }
                         }
-                        for(uint i =0; i<1024; i++){
-                            if(list_update_local2[i].size() != 0){
+                        //PHASE 4
+                        for (uint i = 0; i < 1024; i++) {
+                            if (list_update_local2[i].size() != 0) {
                                 omp_set_lock(&(list_update_mutex[i]));
-                                list_update2[i].insert(list_update2[i].end(),list_update_local2[i].begin(),list_update_local2[i].end());
+                                list_update2[i].insert(list_update2[i].end(), list_update_local2[i].begin(), list_update_local2[i].end());
                                 omp_unset_lock(&(list_update_mutex[i]));
                                 list_update_local2[i].clear();
                             }
@@ -329,9 +302,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 total_nb_color++;
                             }
                         }
-
-
-                        #pragma omp barrier
+                        //PHASE 5
                         #pragma omp critical (mmap)
                         {
                             for(uint32_t imm = 0; imm < list_mofif_mmap.size(); imm++) {
@@ -339,7 +310,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             }
                         }
                         list_mofif_mmap.clear();
-                    }
+    
+                    }             
                 }
             }
 

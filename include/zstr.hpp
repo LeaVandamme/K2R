@@ -217,7 +217,7 @@ public:
                 else
                 {
                     // run inflate() on input
-                    if (! zstrm_p) zstrm_p = std::unique_ptr<detail::z_stream_wrapper>(new detail::z_stream_wrapper(true, Z_DEFAULT_COMPRESSION, window_bits));
+                    if (! zstrm_p) zstrm_p = std::unique_ptr<detail::z_stream_wrapper>(new detail::z_stream_wrapper(true, 1, window_bits));
                     zstrm_p->next_in = reinterpret_cast< decltype(zstrm_p->next_in) >(in_buff_start);
                     zstrm_p->avail_in = uint32_t(in_buff_end - in_buff_start);
                     zstrm_p->next_out = reinterpret_cast< decltype(zstrm_p->next_out) >(out_buff_free_start);
@@ -266,7 +266,7 @@ class ostreambuf
 {
 public:
     ostreambuf(std::streambuf * _sbuf_p,
-               std::size_t _buff_size = default_buff_size, int _level = Z_DEFAULT_COMPRESSION, int _window_bits = 0)
+               std::size_t _buff_size = default_buff_size, int _level = 1, int _window_bits = 0)
         : sbuf_p(_sbuf_p),
           in_buff(),
           out_buff(),
@@ -385,7 +385,7 @@ class ostream
 {
 public:
     ostream(std::ostream & os,
-            std::size_t _buff_size = default_buff_size, int _level = Z_DEFAULT_COMPRESSION, int _window_bits = 0)
+            std::size_t _buff_size = default_buff_size, int _level = 1, int _window_bits = 0)
         : std::ostream(new ostreambuf(os.rdbuf(), _buff_size, _level, _window_bits))
     {
         exceptions(std::ios_base::badbit);
@@ -459,7 +459,7 @@ class ofstream
 {
 public:
     explicit ofstream(const std::string filename, std::ios_base::openmode mode = std::ios_base::out,
-                      int level = Z_DEFAULT_COMPRESSION, size_t buff_size = default_buff_size)
+                      int level = 1, size_t buff_size = default_buff_size)
         : detail::strict_fstream_holder< strict_fstream::ofstream >(filename, mode | std::ios_base::binary),
           std::ostream(new ostreambuf(_fs.rdbuf(), buff_size, level))
     {
@@ -471,7 +471,7 @@ public:
         _fs.close();
     }
     #ifdef CAN_MOVE_IOSTREAM
-    void open(const std::string filename, std::ios_base::openmode mode = std::ios_base::out, int level = Z_DEFAULT_COMPRESSION) {
+    void open(const std::string filename, std::ios_base::openmode mode = std::ios_base::out, int level = 1) {
         flush();
         _fs.open(filename, mode | std::ios_base::binary);
         std::ostream::operator=(std::ostream(new ostreambuf(_fs.rdbuf(), default_buff_size, level)));

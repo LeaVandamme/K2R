@@ -137,6 +137,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         if(fichier_scd) {
             vector<mmer>* minimizer_list=new vector<mmer>[num_thread];
             bool eof = false;
+            bool localeof = false;
             atomic<int> basic_color_id = -1;
             uint32_t cpt_new_mmer = 0;
             map_tmp_colors* map_current_read_color = new map_tmp_colors[1024];
@@ -155,17 +156,18 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                 vector<mmer> cured_minimizer_list;
                 vector<pair<mmer, icolor>> list_mofif_mmap;
                 icolor color_register = 0;
-                while(!eof) {
+                while(not eof) {
                     ligne.clear();
                     #pragma omp critical (file)
                     {
                         if(not eof){
                             getline(fichier_scd, ligne);
                             getline(fichier_scd, ligne);
-                            eof = fichier_scd.eof();
                         }
+                        localeof = fichier_scd.eof();
                     }
                     if (ligne.size() >= k) {
+                        
                         #pragma omp atomic
                         global_num_read++;
                         if(homocomp) {
@@ -190,6 +192,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     }
 
                     #pragma omp barrier
+                    eof=localeof;
 
                     for(uint32_t i_read(0);i_read<num_thread;i_read++){
                         #pragma omp single
@@ -203,7 +206,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 list_update[i].clear();
                             }   
                         }
-                        //PHASE 1
                         #pragma omp for
                         for (uint im = 0; im < minimizer_list[i_read].size(); im++) {
                             mmer mmer(minimizer_list[i_read][im]);
@@ -226,7 +228,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             }
                         }
 
-                        //PHASE 2
                         for (uint i = 0; i < 1024; i++) {
                             if (list_update_local[i].size() != 0) {
                                 sort(list_update_local[i].begin(), list_update_local[i].end());
@@ -236,7 +237,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 list_update_local[i].clear();
                             }
                         }
-                        //PHASE 3
                         #pragma omp barrier
                         auto start_phase_3 = high_resolution_clock::now(); // Start timer for phase 3
                         #pragma omp for
@@ -273,7 +273,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 }
                             }
                         }
-                        //PHASE 4
                         for (uint i = 0; i < 1024; i++) {
                             if (list_update_local2[i].size() != 0) {
                                 omp_set_lock(&(list_update_mutex[i]));
@@ -305,7 +304,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 total_nb_color++;
                             }
                         }
-                        //PHASE 5
                         #pragma omp critical (mmap)
                         {
                             for(uint32_t imm = 0; imm < list_mofif_mmap.size(); imm++) {

@@ -30,7 +30,7 @@ using namespace std;
 class Color{
 
     public:
-        const static uint SIZEBUFFER=16;
+        const static uint SIZEBUFFER=4;
         uint32_t compressed_array_size;
         string compressed_array;
         uint32_t nb_occ;

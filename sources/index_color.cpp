@@ -238,7 +238,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             }
                         }
                         #pragma omp barrier
-                        auto start_phase_3 = high_resolution_clock::now(); // Start timer for phase 3
                         #pragma omp for
                         for (uint i = 0; i < 1024; i++) {
                             if (list_update[i].size() != 0) {
@@ -276,20 +275,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         for (uint i = 0; i < 1024; i++) {
                             if (list_update_local2[i].size() != 0) {
                                 omp_set_lock(&(list_update_mutex[i]));
-                                list_update2[i].insert(list_update2[i].end(), list_update_local2[i].begin(), list_update_local2[i].end());
+                                for(uint j = 0;j<list_update_local2[i].size();j++){
+                                    add_color(colormap[i], list_update_local2[i][j].first, list_update_local2[i][j].second);
+                                }
                                 omp_unset_lock(&(list_update_mutex[i]));
                                 list_update_local2[i].clear();
-                            }
-                        }
-                        #pragma omp barrier
-                        #pragma omp for
-                        for(uint i = 0;i<1024;i++){
-                            if(list_update2[i].size() != 0){
-                                sort(list_update2[i].begin(), list_update2[i].end());
-                                for(uint j = 0;j<list_update2[i].size();j++){
-                                    add_color(colormap[i], list_update2[i][j].first, list_update2[i][j].second);
-                                }
-                                list_update2[i].clear();
                             }
                         }
                         #pragma omp barrier

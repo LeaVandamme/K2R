@@ -185,6 +185,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         }
                         minimizer_list[omp_get_thread_num()].resize(curr_id);
                         sortAndRemoveDuplicates(minimizer_list[omp_get_thread_num()]);
+                    }else{
+                        minimizer_list[omp_get_thread_num()].clear();
                     }
 
                     #pragma omp barrier
@@ -223,6 +225,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 list_update_local[idmutex].push_back({ic, mmer});
                             }
                         }
+
                         //PHASE 2
                         for (uint i = 0; i < 1024; i++) {
                             if (list_update_local[i].size() != 0) {
@@ -381,6 +384,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 // Stockage en binaire de l'index
 
 void Index_color::serialize_mmermap(string& output_file){
+    // return;
 
     zstr::ofstream file(output_file);
 

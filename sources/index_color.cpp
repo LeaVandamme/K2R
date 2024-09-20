@@ -160,7 +160,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     ligne.clear();
                     #pragma omp critical (file)
                     {
-                        if(not eof){
+                        if(!eof){
                             getline(fichier_scd, ligne);
                             getline(fichier_scd, ligne);
                         }
@@ -190,7 +190,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     }else{
                         minimizer_list[omp_get_thread_num()].clear();
                     }
-
+                    
                     #pragma omp barrier
                     eof=localeof;
 
@@ -237,6 +237,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 list_update_local[i].clear();
                             }
                         }
+
                         #pragma omp barrier
                         #pragma omp for
                         for (uint i = 0; i < 1024; i++) {
@@ -282,6 +283,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 list_update_local2[i].clear();
                             }
                         }
+
                         #pragma omp barrier
                         #pragma omp single
                         {
@@ -518,7 +520,7 @@ vector<pair<string,uint32_t>> Index_color::query_sequence_fp(mmer_map& mmermap, 
 
 void Index_color::query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread) {
     ifstream fichier(file_in, ios::in);
-    ofstream out(file_out, ios::out | ios::trunc);
+    //ofstream out(file_out, ios::out | ios::trunc);
 
     if(fichier) {
 
@@ -559,9 +561,9 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         sortAndRemoveDuplicates(global_ml);
         vect_reads = query_sequence_fp(mmermap, colormap, global_ml, threshold,lines,num_thread);
         sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
-        for(auto s : vect_reads) {
+        /*for(auto s : vect_reads) {
             out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
-        }
+        }*/
     }
     else {
         cerr << "Error opening the file" << endl;

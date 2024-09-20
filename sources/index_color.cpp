@@ -488,7 +488,6 @@ void Index_color::deserialize_colormap(string& input_file){
 
 
 void Index_color::add_color(color_map& color_map, const Color& color, const icolor color_id) {
-    // cout << "!!!!!!!!!!!!!!!!!!!!!!!! New Color" << endl << endl << endl;
     color_map.emplace(color_id,color);
 }
 
@@ -521,6 +520,7 @@ vector<pair<string,uint32_t>> Index_color::query_sequence_fp(mmer_map& mmermap, 
 void Index_color::query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread) {
     ifstream fichier(file_in, ios::in);
     //ofstream out(file_out, ios::out | ios::trunc);
+    ofstream out(file_out, ios::out | ios::app);
 
     if(fichier) {
 
@@ -528,7 +528,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         vector<string> lines;
         vector<mmer>  global_ml;
         minimizerLister ml = minimizerLister(k, m);
-        // #pragma omp parallel num_threads(num_thread)
+        //#pragma omp parallel num_threads(num_thread)
         {
             vector<mmer>  local_ml;
             string ligne;
@@ -561,9 +561,10 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         sortAndRemoveDuplicates(global_ml);
         vect_reads = query_sequence_fp(mmermap, colormap, global_ml, threshold,lines,num_thread);
         sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
-        /*for(auto s : vect_reads) {
-            out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
-        }*/
+        out << file_in << " : " << vect_reads.size() << endl;
+        // for(auto s : vect_reads) {
+        //     out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
+        // }
     }
     else {
         cerr << "Error opening the file" << endl;
@@ -573,11 +574,12 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 
 
 void Index_color::query_fof(const string& file_in,const string& outputprefix, double threshold, uint16_t num_thread){
+    
     ifstream fichier(file_in, ios::in);
     uint cpt(0);
     string out = "";
 
-    // #pragma omp parallel num_threads(num_thread)
+    //#pragma omp parallel num_threads(num_thread)
     {
         if(fichier) {
             string ligne;
@@ -586,9 +588,9 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
                 {
                     getline(fichier,ligne);
                 }
-                size_t pos = ligne.find_last_of("/");
-                out = outputprefix + "_" + ligne.substr(pos+1, '.');
-                query_fasta(ligne, out, threshold, num_thread);
+                //size_t pos = ligne.find_last_of("/");
+                //out = outputprefix + "_" + ligne.substr(pos+1, '.');
+                query_fasta(ligne, outputprefix, threshold, num_thread);
                 cpt++;
             }
         }

@@ -22,6 +22,7 @@ string query_file(""), output_prefix("hits_"), binary_prefix("binary_index");
 bool fof(false), fasta(false);
 double threshold(0.4);
 uint16_t num_thread(1);
+string format = "match";
 
 
 
@@ -37,7 +38,9 @@ void PrintHelp()
             "-b                       :     Read index from binary files (default: binary_index) \n"
 
 			"\n TWEAK PARAMETERS\n"
-            "-r                       :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default: " << intToString(threshold) << ")\n";
+            "-r                       :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default: " << intToString(threshold) << ")\n"
+            "-t                       :     Number of threads used (default: " << intToString(num_thread) << ")\n"
+            "--reads OR --match       :     Output format (default: " << format << ", --reads create a fasta file for each query sequence, containing the matching reads ; --match only report the number of matches for each sequence, in a single file)\n";
 
 	exit(1);
 }
@@ -49,6 +52,9 @@ void ProcessArgs(int argc, char** argv)
 	const char* const short_opts = "s:f:o:b:t:r:";
 	const option long_opts[] =
 	{
+        {"reads", no_argument, nullptr, 'reads'},
+        {"match", no_argument, nullptr, 'match'},
+		{nullptr, no_argument, nullptr, 0}
 	};
 	while (true)
 	{
@@ -78,6 +84,12 @@ void ProcessArgs(int argc, char** argv)
 				break;
             case 'r':
 				threshold=stod(optarg);
+				break;
+			case 'reads':
+				format = "reads";
+				break;
+			case 'match':
+				format = "match";
 				break;
 			case '?': 
 				PrintHelp();
@@ -114,7 +126,8 @@ int main(int argc, char *argv[]){
             cout << "=========================================================" << endl << endl;
             cout << "Beginning of query : " + query_file << endl;
             auto start_querying_seq = high_resolution_clock::now();
-            index_color.query_fof(query_file, output_prefix, threshold, num_thread);
+            cout << format << endl;
+            index_color.query_fof(query_file, output_prefix, threshold, num_thread, format);
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);
             cout << "Querying the file takes " << (float)querying_seq.count() << " ns." << endl;
@@ -127,7 +140,7 @@ int main(int argc, char *argv[]){
             auto start_querying_seq = high_resolution_clock::now();
             size_t pos = query_file.find_last_of("/");
             string output = output_prefix + "_" + query_file.substr(pos+1, '.');
-            index_color.query_fasta(query_file, output, threshold, num_thread);
+            index_color.query_fasta(query_file, output, threshold, num_thread, format);
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);
             cout << "Output file : " + output << endl;

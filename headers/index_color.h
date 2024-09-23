@@ -49,9 +49,6 @@ class Index_color{
         Index_color(string& mmer_binary_file, string& color_binary_file);
 
         ~Index_color(){
-            // for(uint i(0);i<1024;++i){
-            //     delete &colormap[i];
-            // }
             delete[] colormap;
             if(read_stream!=NULL){
                 delete read_stream;
@@ -69,14 +66,17 @@ class Index_color{
         void incremente_color(color_map& colormap, icolor color_id);
         void decremente_color(color_map& colormap, icolor color_id);
 
-        vector<pair<string,uint32_t>> query_sequence_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold , const vector<string>& query_sequences, uint16_t num_thread);
-        void query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread);
-        void query_fof(const string& file_in,const string& op, double threshold, uint16_t num_thread);
+        //vector<pair<string,uint32_t>> query_sequence_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold , const vector<string>& query_sequences, uint16_t num_thread);
+        vector<pair<string,string>> query_sequence_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold , const vector<string>& query_sequences, uint16_t num_thread);
+
+        void query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread, string format);
+        void query_fof(const string& file_in,const string& op, double threshold, uint16_t num_thread, string format);
 
         vector<iread> get_possible_reads_threshold(mmer_map& mmermap, color_map* colormap, const vector<mmer> minlist, double threshold, uint16_t num_thread);
         string get_read_sequence(iread i);
         string get_header(iread i);
-        vector<pair<string,uint32_t>> verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread);
+        //vector<pair<string,uint32_t>> verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread);
+        vector<pair<string,string>> verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread);
 
         seq homocompression(seq& sequence);
 

@@ -36,6 +36,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     clock_gettime(CLOCK_REALTIME, &begin_index_real);
     colormap = new color_map[1024];
     iread global_num_read = 0;
+    iread total_num_read = 0;
     uint32_t av_nb_iread = 0;
 
     // FIRST PASS
@@ -69,6 +70,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             minimizerLister ml = minimizerLister(k, m);
             vector<mmer> minimizer_list_tmp;
             while(!fichier.eof()) {
+                #pragma omp atomic
+                total_num_read++;
+
                 ligne.clear();
                 omp_set_lock(&input_file_mutex);
                 header_line_pos.push_back(fichier.tellg());
@@ -135,177 +139,209 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         zstr::ifstream fichier_scd(read_file, ios::in);
 
         if(fichier_scd) {
-            vector<mmer>* minimizer_list=new vector<mmer>[num_thread];
             bool eof = false;
-            bool localeof = false;
-            atomic<int> basic_color_id = -1;
-            uint32_t cpt_new_mmer = 0;
-            map_tmp_colors* map_current_read_color = new map_tmp_colors[1024];
+            icolor current_id_color = 1;
+
+            omp_lock_t list_colormap_key_mutex[1024];
             for(uint i = 0; i < 1024; i++) {
-                omp_init_lock(&(map_current_read_color_mutex[i]));
+                omp_init_lock(&(list_colormap_key_mutex[i]));
             }
+
+
             #pragma omp parallel num_threads(num_thread)
             {
                 string ligne;
-                vector<pair<icolor, mmer>>* list_update_local = new vector<pair<icolor, mmer>>[1024];
-                vector<pair<Color, icolor>>* list_update_local2 = new vector<pair<Color,icolor>>[1024];
-                vector<mmer> draft_minimizer_list,local_minimizer_list;
 
-                icolor current_id_color = 1;
                 minimizerLister ml = minimizerLister(k, m);
-                vector<mmer> cured_minimizer_list;
-                vector<pair<mmer, icolor>> list_mofif_mmap;
-                icolor color_register = 0;
                 while(not eof) {
                     ligne.clear();
+
+
+                    iread global_num_read_local = 0;
+
+                    // Récupère la ligne correspondant à la séquence et mettant à jour le numéro du read (attention : on numérote tous les reads et non plus les reads dont la taille >= k)
                     #pragma omp critical (file)
                     {
                         if(!eof){
                             getline(fichier_scd, ligne);
                             getline(fichier_scd, ligne);
                         }
-                        localeof = fichier_scd.eof();
-                    }
-                    if (ligne.size() >= k) {
-                        
-                        #pragma omp atomic
+                        // localeof = fichier_scd.eof();
+                        eof = fichier_scd.eof();
+                        global_num_read_local = global_num_read;
                         global_num_read++;
+                    }
+
+                    #pragma omp critical (progress_bar)
+                    {
+                        // if(global_num_read_local % 1000 == 0) {
+                        // }
+                        afficherBarreTelechargement(global_num_read_local,total_num_read);
+                    }
+
+                    // Ne regarde que les lignes plus grandes que k
+                    if (ligne.size() >= k) {
+
+                        // Applique homocompression si choisit comme param
                         if(homocomp) {
                             ligne = homocompression(ligne);
                         }
-                        if(global_num_read % 10000 == 0) {
-                            cerr << "\r" << global_num_read << flush;
-                        }
+
+                        // Initialisation de la liste de minimizers
+                        vector<mmer>minimizers_list;
+
+                        // Crée la liste des minimizers de la ligne en cours
+                        minimizers_list = ml.get_minimizer_list(ligne);
+
+                        // Supprime les minimizers qui ne sont pas dans le filtre de bloom "bf_bool"
                         uint64_t curr_id(0);
-                        minimizer_list[omp_get_thread_num()] = ml.get_minimizer_list(ligne);
-                        for (uint im = 0; im < minimizer_list[omp_get_thread_num()].size(); im++) {
-                            uint64_t mmer_hash = revhash(minimizer_list[omp_get_thread_num()][im]);
+                        for (uint im = 0; im < minimizers_list.size(); im++) {
+                            uint64_t mmer_hash = revhash(minimizers_list[im]);
                             uint64_t ind_to_insert = mmer_hash & size_vect_mask;
                             if (bf_bool[ind_to_insert % 1024][ind_to_insert / 1024]) {
-                                minimizer_list[omp_get_thread_num()][curr_id++]=minimizer_list[omp_get_thread_num()][im];
+                                minimizers_list[curr_id++]=minimizers_list[im];
                             }
                         }
-                        minimizer_list[omp_get_thread_num()].resize(curr_id);
-                        sortAndRemoveDuplicates(minimizer_list[omp_get_thread_num()]);
-                    }else{
-                        minimizer_list[omp_get_thread_num()].clear();
-                    }
-                    
-                    #pragma omp barrier
-                    eof=localeof;
+                        minimizers_list.resize(curr_id);
 
-                    for(uint32_t i_read(0);i_read<num_thread;i_read++){
-                        #pragma omp single
-                        {
-                            for(uint i = 0; i < 1024; i++) {
-                                map_current_read_color[i].clear();
-                            }
-                            basic_color_id = -1;
-                            cpt_new_mmer = 0;
-                            for(uint i =0; i<1024; i++){
-                                list_update[i].clear();
-                            }   
+                        // Trie et supprime les minimizers dupliqués
+                        sortAndRemoveDuplicates(minimizers_list);
+
+                        vector<icolor>colormap_id_list;
+                        for (auto e : minimizers_list) {
+                            colormap_id_list.push_back(e % 1024);
                         }
-                        #pragma omp for
-                        for (uint im = 0; im < minimizer_list[i_read].size(); im++) {
-                            mmer mmer(minimizer_list[i_read][im]);
+
+                        sortAndRemoveDuplicates(colormap_id_list);
+
+
+                        #pragma omp critical (lock_colormap_id)
+                        {
+                            for (icolor e : colormap_id_list) {
+                                omp_set_lock(&(list_colormap_key_mutex[e]));
+                            }
+                        }
+
+                        vector<pair<mmer, icolor>> list_modif_mmermap;
+                        vector<pair<icolor, mmer>> list_mmers;
+                        vector<pair<icolor, Color>> list_creation_colormap;
+                        uint32_t cpt_new_mmer = 0;
+                        atomic<int> basic_color_id = -1;
+
+
+                        // Pour chaque minimizer, on ajoute le lien entre le mmer et l'id de sa couleur dans la colormap
+                        for (uint im = 0; im < minimizers_list.size(); im++) {
+                            mmer mmer(minimizers_list[im]);
+                            // Le mmer n'est pas encore présent dans la mmermap
                             if (mmermap.find(mmer) == mmermap.end()) {
+                                // Permet de garder en mémoire le nombre de mmer pointant vers la nouvelle couleur
                                 #pragma omp atomic
                                 cpt_new_mmer++;
-                                #pragma omp critical (cic)
+
+                                // Maj de l'id dans la colormap des mmer qui ne sont pas encore présent
+                                #pragma omp critical (lock_update_basic_color_id)
                                 {
                                     if (basic_color_id == -1) {
-                                        int new_id((current_id_color * num_thread + omp_get_thread_num()));
-                                        basic_color_id = new_id;
+                                        basic_color_id = current_id_color;
                                         current_id_color++;
+                                        // On crée une nouvelle couleur
+                                        Color basic_color = Color(global_num_read_local);
+                                        // On ajoutera plus tard un lien entre cet idcolor et la nouvelle couleur dans la colormap
+                                        list_creation_colormap.push_back({basic_color_id, basic_color});
                                     }
                                 }
-                                list_mofif_mmap.push_back({mmer, basic_color_id});
+                                // On ajoutera plus tard un lien entre le mmer et l'id de la nouvelle couleur qu'on va créer
+                                list_modif_mmermap.push_back({mmer, basic_color_id});
+
                             } else {
                                 icolor ic(mmermap.at(mmer));
-                                uint32_t idmutex = ic % 1024;
-                                list_update_local[idmutex].push_back({ic, mmer});
+                                list_mmers.push_back({ic, mmer});
                             }
                         }
+                        // On trie la list_mmers pour regrouper les mmers qui vont sur la meme couleur
+                        sort(list_mmers.begin(), list_mmers.end());
 
-                        for (uint i = 0; i < 1024; i++) {
-                            if (list_update_local[i].size() != 0) {
-                                sort(list_update_local[i].begin(), list_update_local[i].end());
-                                omp_set_lock(&(list_update_mutex[i]));
-                                list_update[i].insert(list_update[i].end(), list_update_local[i].begin(), list_update_local[i].end());
-                                omp_unset_lock(&(list_update_mutex[i]));
-                                list_update_local[i].clear();
-                            }
-                        }
+                        if (list_mmers.size() != 0) {
 
-                        #pragma omp barrier
-                        #pragma omp for
-                        for (uint i = 0; i < 1024; i++) {
-                            if (list_update[i].size() != 0) {
-                                sort(list_update[i].begin(), list_update[i].end());
-                                list_update[i].push_back({0, 0});
+                            list_mmers.push_back({0, 0});
 
-                                icolor prev_color = list_update[i][0].first;
-                                uint cpt = 1;
-                                for (uint j = 1; j < list_update[i].size(); j++) {
-                                    if (list_update[i][j].first != prev_color) {
-                                        if (cpt == colormap[i][prev_color].get_nb_occ()) {
-                                            colormap[i][prev_color].add_idread(global_num_read - 1);
-                                        } else {
-                                            Color color_to_insert = Color(colormap[i][prev_color], global_num_read - 1);
-                                            icolor new_id = (current_id_color * num_thread + omp_get_thread_num());
-                                            current_id_color++;
-                                            for (uint ii = 0; ii < cpt; ii++) {
-                                                list_mofif_mmap.push_back({list_update[i][j - cpt + ii].second, new_id});
-                                            }
-                                            color_to_insert.set_nb_occ(cpt);
-                                            list_update_local2[new_id % 1024].push_back({color_to_insert, new_id});
-
-                                            colormap[i][prev_color].set_nb_occ(colormap[i][prev_color].get_nb_occ() - cpt);
-                                            #pragma omp atomic
-                                            total_nb_color++;
-                                        }
-                                        cpt = 1;
-                                        prev_color = list_update[i][j].first;
+                            icolor prev_color = list_mmers[0].first;
+                            uint cpt = 1;
+                            for (uint j = 1; j < list_mmers.size(); j++) {
+                                if (list_mmers[j].first != prev_color) {
+                                    // Si tous les mmers de la couleurs sont dans ce nouveau read (TODO mutex sur colormap[prev_color % 1024] ?)
+                                    if (cpt == colormap[prev_color % 1024][prev_color].get_nb_occ()) {
+                                        // On ajoute ce read à la couleur
+                                        colormap[prev_color % 1024][prev_color].add_idread(global_num_read_local);
                                     } else {
-                                        cpt++;
+                                        // Dans le cas contraire, on crée une nouvelle couleur
+                                        Color color_to_insert = Color(colormap[prev_color % 1024][prev_color], global_num_read_local);
+
+                                        icolor new_id;
+                                        #pragma omp critical (lock_update_new_id)
+                                        {
+                                            new_id = current_id_color;
+                                            current_id_color++;
+                                        }
+
+                                        // On ajoutera plus tard un lien entre ces mmers et la nouvelle couleur dans la mmermap
+                                        for (uint ii = 0; ii < cpt; ii++) {
+                                            list_modif_mmermap.push_back({list_mmers[j - cpt + ii].second, new_id});
+                                        }
+
+
+                                        // On met à jour le nombre de mmer qui pointe sur cette couleur
+                                        color_to_insert.set_nb_occ(cpt);
+
+                                        // On met à jour le nouveau nombre de mmer qui pointe sur l'ancienne couleur
+                                        colormap[prev_color % 1024][prev_color].set_nb_occ(colormap[prev_color % 1024][prev_color].get_nb_occ() - cpt);
+
+                                        // On ajoutera plus tard un lien entre cet idcolor et la nouvelle couleur dans la colormap
+                                        list_creation_colormap.push_back({new_id, color_to_insert});
                                     }
+                                    cpt = 1;
+                                    prev_color = list_mmers[j].first;
+                                } else {
+                                    cpt++;
                                 }
-                            }
-                        }
-                        for (uint i = 0; i < 1024; i++) {
-                            if (list_update_local2[i].size() != 0) {
-                                omp_set_lock(&(list_update_mutex[i]));
-                                for(uint j = 0;j<list_update_local2[i].size();j++){
-                                    add_color(colormap[i], list_update_local2[i][j].first, list_update_local2[i][j].second);
-                                }
-                                omp_unset_lock(&(list_update_mutex[i]));
-                                list_update_local2[i].clear();
                             }
                         }
 
-                        #pragma omp barrier
-                        #pragma omp single
-                        {
-                            if(cpt_new_mmer != 0){
-                                Color basic_color = Color(global_num_read-1);
-                                uint32_t idmutex = basic_color_id % 1024;
-                                add_color(colormap[idmutex], basic_color, basic_color_id);
-                                colormap[idmutex][basic_color_id].set_nb_occ(cpt_new_mmer);
+                        if (list_creation_colormap.size() != 0) {
+                            for(uint j = 0;j<list_creation_colormap.size();j++){
+                                add_color(colormap[list_creation_colormap[j].first % 1024], list_creation_colormap[j].second, list_creation_colormap[j].first);
                                 #pragma omp atomic
                                 total_nb_color++;
                             }
+                            list_creation_colormap.clear();
                         }
-                        #pragma omp critical (mmap)
+
+                        if(cpt_new_mmer != 0){
+                            colormap[basic_color_id % 1024][basic_color_id].set_nb_occ(cpt_new_mmer);
+                        }
+                        #pragma omp critical (lock_updte_mmermap)
                         {
-                            for(uint32_t imm = 0; imm < list_mofif_mmap.size(); imm++) {
-                                mmermap[list_mofif_mmap[imm].first] = list_mofif_mmap[imm].second;
+                            for(uint32_t imm = 0; imm < list_modif_mmermap.size(); imm++) {
+                                mmermap[list_modif_mmermap[imm].first] = list_modif_mmermap[imm].second;
                             }
                         }
-                        list_mofif_mmap.clear();
-    
-                    }             
+
+                        #pragma omp critical (unlock_colormap_id)
+                        {
+                            for (icolor e : colormap_id_list) {
+                                omp_unset_lock(&(list_colormap_key_mutex[e]));
+
+                            }
+                        }
+                    }
                 }
+
+            }
+            afficherBarreTelechargement(total_num_read,total_num_read);
+            cout << endl;
+
+            for(uint i = 0; i < 1024; i++) {
+                omp_destroy_lock(&(list_colormap_key_mutex[i]));
             }
 
             fichier_scd.close();
@@ -321,7 +357,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                 }
             }
 
-            delete[] map_current_read_color;
             clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_crea);
             clock_gettime(CLOCK_REALTIME, &end_crea_real);
             auto seconds = end_crea.tv_sec - end_bf.tv_sec;
@@ -338,6 +373,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     uint64_t colormap_entries = 0;
     for(uint i = 0; i < 1024; i++) {
         colormap_entries += colormap[i].size();
+        // color_map::iterator it = colormap[i].begin();
+        // while (it != colormap[i].end()) {
+        //     cout << it->first << "; "<<it->second << endl;
+        //     it++;
+        // }
     }
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_index);
@@ -369,6 +409,27 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     somme_taille_colorid_cmap = colormap_entries * 8;
 }
 
+
+void Index_color::afficherBarreTelechargement(int tailleActuelle, int tailleMax) {
+    int scale = tailleMax/50;
+    if (tailleActuelle % scale == 0 || tailleActuelle == tailleMax) {
+        int progression = tailleActuelle*100/tailleMax;
+
+        cout << "\r[";
+        for (int i = 0; i < progression/2; i++) {
+            cout << "=";
+        }
+
+        if (tailleActuelle < tailleMax) {
+            cout << ">";
+        }
+
+        for (int i = progression/2 + 1; i < 50; i++) {
+            cout << " ";
+        }
+        cout << "] " << progression << "%" << flush;
+    }
+}
 
 
 // Stockage en binaire de l'index
@@ -590,7 +651,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 
 
 void Index_color::query_fof(const string& file_in,const string& outputprefix, double threshold, uint16_t num_thread, string format){
-    
+
     ifstream fichier(file_in, ios::in);
 
     #pragma omp parallel num_threads(num_thread)

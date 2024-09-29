@@ -80,5 +80,7 @@ class Index_color{
 
         seq homocompression(seq& sequence);
 
+        void afficherBarreTelechargement(int tailleActuelle, int tailleMax);
+
 };
 #endif

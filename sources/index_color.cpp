@@ -25,23 +25,35 @@ Index_color::Index_color(string& mmer_binary_file, string& color_binary_file){
     deserialize_colormap(color_binary_file);
 }
 
-uint Color::color_deleted=0;
 
-uint64_t total_nb_color = 0;
-uint64_t mmer_deleted = 0;
+uint Color::color_deleted=0;
 
 void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_ab, uint16_t max_ab, bool keep_all, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread) {
     struct timespec begin_index, begin_index_real, end_index, end_index_real, end_bf, end_bf_real, end_crea, end_crea_real;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin_index);
     clock_gettime(CLOCK_REALTIME, &begin_index_real);
     colormap = new color_map[1024];
-    iread global_num_read = 0;
     iread total_num_read = 0;
     uint32_t av_nb_iread = 0;
+    uint64_t total_nb_color = 0;
+
+    // Compute number of reads
+    ifstream fichier_pre(read_file, ios::in);
+    string ligne;
+    if(fichier_pre) {
+        while(!fichier_pre.eof()) {
+            getline(fichier_pre, ligne);
+            getline(fichier_pre, ligne);
+            total_num_read++;
+        }
+    }
+
 
     // FIRST PASS
     ifstream fichier(read_file, ios::in);
-    iread num_read = 0;
+    iread global_num_read = 0;
+
+
     if(fichier) {
         cout << "STEP 1 : Counting Bloom Filter" << endl;
         uint64_t size_vect = 1;
@@ -51,16 +63,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         for(uint i =0;i<1024;i++){
             counting_bf_tab[i].resize(size_vect/1024, 0);
         }
-        vector<pair<icolor,mmer>>* list_update = new vector<pair<icolor,mmer>>[1024];
-        vector<pair<Color, icolor>>* list_update2 = new vector<pair<Color, icolor>>[1024];
 
-        omp_lock_t input_file_mutex, map_current_read_color_mutex[1024], color_map_mutex[1024], mmermap_mutex, list_update_mutex[1024], nutex[1024];
-        omp_init_lock(&input_file_mutex);
-        omp_init_lock(&mmermap_mutex);
+        omp_lock_t nutex[1024];
         for(uint i = 0; i < 1024; i++) {
-            omp_init_lock(&(color_map_mutex[i]));
             omp_init_lock(&(nutex[i]));
-            omp_init_lock(&(list_update_mutex[i]));
         }
 
         // BLOOM FILTER
@@ -70,16 +76,23 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             minimizerLister ml = minimizerLister(k, m);
             vector<mmer> minimizer_list_tmp;
             while(!fichier.eof()) {
-                #pragma omp atomic
-                total_num_read++;
+                // #pragma omp atomic
+                // total_num_read++;
 
                 ligne.clear();
-                omp_set_lock(&input_file_mutex);
-                header_line_pos.push_back(fichier.tellg());
-                getline(fichier, ligne);
-                read_line_pos.push_back(fichier.tellg());
-                getline(fichier, ligne);
-                omp_unset_lock(&input_file_mutex);
+                #pragma omp critical (update_pos)
+                {
+                    header_line_pos.push_back(fichier.tellg());
+                    getline(fichier, ligne);
+                    read_line_pos.push_back(fichier.tellg());
+                    getline(fichier, ligne);
+                    global_num_read++;
+                }
+
+                #pragma omp critical (progress_bar)
+                {
+                    afficherBarreTelechargement(global_num_read,total_num_read);
+                }
                 uint64_t mmer_hash, ind_to_insert;
                 if (ligne.size() >= k) {
                     if(homocomp) {
@@ -126,6 +139,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         delete[] counting_bf_tab;
         #pragma omp barrier
 
+        cout << endl;
+
         // SECOND PASS
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_bf);
         clock_gettime(CLOCK_REALTIME, &end_bf_real);
@@ -135,6 +150,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         cout << endl;
 
         cout << "STEP 2 : Index construction" << endl;
+        global_num_read = 0;
 
         zstr::ifstream fichier_scd(read_file, ios::in);
 
@@ -174,9 +190,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
                     #pragma omp critical (progress_bar)
                     {
-                        // if(global_num_read_local % 1000 == 0) {
-                        // }
-                        afficherBarreTelechargement(global_num_read_local,total_num_read);
+                        afficherBarreTelechargement(global_num_read,total_num_read);
                     }
 
                     // Ne regarde que les lignes plus grandes que k
@@ -411,7 +425,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
 
 void Index_color::afficherBarreTelechargement(int tailleActuelle, int tailleMax) {
-    int scale = tailleMax/50;
+    int scale = tailleMax/100;
     if (tailleActuelle % scale == 0 || tailleActuelle == tailleMax) {
         int progression = tailleActuelle*100/tailleMax;
 

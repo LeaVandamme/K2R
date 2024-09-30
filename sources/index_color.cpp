@@ -158,6 +158,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             bool eof = false;
             icolor current_id_color = 1;
 
+            omp_lock_t list_mmermap_key_mutex[1024];
+            for(uint i = 0; i < 1024; i++) {
+                omp_init_lock(&(list_mmermap_key_mutex[i]));
+            }
             omp_lock_t list_colormap_key_mutex[1024];
             for(uint i = 0; i < 1024; i++) {
                 omp_init_lock(&(list_colormap_key_mutex[i]));
@@ -229,10 +233,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         sortAndRemoveDuplicates(colormap_id_list);
 
 
-                        #pragma omp critical (lock_colormap_id)
+                        #pragma omp critical (lock_mmermap_id)
                         {
                             for (icolor e : colormap_id_list) {
-                                omp_set_lock(&(list_colormap_key_mutex[e]));
+                                omp_set_lock(&(list_mmermap_key_mutex[e]));
                             }
                         }
 
@@ -284,6 +288,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             for (uint j = 1; j < list_mmers.size(); j++) {
                                 if (list_mmers[j].first != prev_color) {
                                     // Si tous les mmers de la couleurs sont dans ce nouveau read (TODO mutex sur colormap[prev_color % 1024] ?)
+                                    omp_set_lock(&(list_colormap_key_mutex[prev_color % 1024]));
                                     if (cpt == colormap[prev_color % 1024][prev_color].get_nb_occ()) {
                                         // On ajoute ce read à la couleur
                                         colormap[prev_color % 1024][prev_color].add_idread(global_num_read_local);
@@ -313,6 +318,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                         // On ajoutera plus tard un lien entre cet idcolor et la nouvelle couleur dans la colormap
                                         list_creation_colormap.push_back({new_id, color_to_insert});
                                     }
+                                    omp_unset_lock(&(list_colormap_key_mutex[prev_color % 1024]));
+
                                     cpt = 1;
                                     prev_color = list_mmers[j].first;
                                 } else {
@@ -340,10 +347,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             }
                         }
 
-                        #pragma omp critical (unlock_colormap_id)
+                        #pragma omp critical (unlock_mmermap_id)
                         {
                             for (icolor e : colormap_id_list) {
-                                omp_unset_lock(&(list_colormap_key_mutex[e]));
+                                omp_unset_lock(&(list_mmermap_key_mutex[e]));
 
                             }
                         }

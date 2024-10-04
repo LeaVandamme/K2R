@@ -28,7 +28,7 @@ Index_color::Index_color(string& mmer_binary_file, string& color_binary_file){
 
 uint Color::color_deleted=0;
 
-void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_ab, uint16_t max_ab, bool keep_all, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread) {
+void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_ab, uint16_t max_ab, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread) {
     struct timespec begin_index, begin_index_real, end_index, end_index_real, end_bf, end_bf_real, end_crea, end_crea_real;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin_index);
     clock_gettime(CLOCK_REALTIME, &begin_index_real);
@@ -36,6 +36,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     iread total_num_read = 0;
     uint32_t av_nb_iread = 0;
     uint64_t total_nb_color = 0;
+    uint64_t total_nb_mmer = 0;
+    uint32_t nb_mmer_skip_min = 0;
+    uint32_t nb_mmer_skip_max = 0;
 
     // Compute number of reads
     ifstream fichier_pre(read_file, ios::in);
@@ -105,19 +108,15 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         uint64_t vect_num = ind_to_insert %1024;
                         uint64_t tab_indice = ind_to_insert/1024;
                         omp_set_lock(&nutex[vect_num]);
-                        if(keep_all) {
+                        if(counting_bf_tab[vect_num][tab_indice] < max_ab) {
                             counting_bf_tab[vect_num][tab_indice]++;
-                        } else {
-                            if(counting_bf_tab[vect_num][tab_indice] < max_ab) {
-                                counting_bf_tab[vect_num][tab_indice]++;
-                            }
                         }
                         omp_unset_lock(&nutex[vect_num]);
                     }
                 }
             }
         }
-
+        
         #pragma omp barrier
         vector<bool> bf_bool[1024];
         uint64_t segment_size = size_vect / 1024;
@@ -125,13 +124,19 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         for (int i = 0; i < 1024; ++i) {
             bf_bool[i].resize(segment_size, false);
             for(uint64_t ii = 0; ii < segment_size; ii++) {
-                if(keep_all) {
-                    if(counting_bf_tab[i][ii] >= 1) {
-                        bf_bool[i][ii] = true;
-                    }
-                } else {
-                    if(counting_bf_tab[i][ii] >= min_ab && counting_bf_tab[i][ii] < max_ab) {
-                        bf_bool[i][ii] = true;
+                if(counting_bf_tab[i][ii] >= min_ab && counting_bf_tab[i][ii] < max_ab) {
+                    bf_bool[i][ii] = true;
+                }
+                else{
+                    if(counting_bf_tab[i][ii] > 0){
+                        if(counting_bf_tab[i][ii] < min_ab){
+                            #pragma omp atomic
+                            nb_mmer_skip_min++;
+                        }
+                        if(counting_bf_tab[i][ii] == max_ab){
+                            #pragma omp atomic
+                            nb_mmer_skip_max++;
+                        }
                     }
                 }
             }
@@ -345,6 +350,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                             for(uint32_t imm = 0; imm < list_modif_mmermap.size(); imm++) {
                                 mmermap[list_modif_mmermap[imm].first] = list_modif_mmermap[imm].second;
                             }
+
                         }
 
                         #pragma omp critical (unlock_mmermap_id)
@@ -394,7 +400,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     uint64_t colormap_entries = 0;
     for(uint i = 0; i < 1024; i++) {
         colormap_entries += colormap[i].size();
-        // color_map::iterator it = colormap[i].begin();
+        color_map::iterator it = colormap[i].begin();
         // while (it != colormap[i].end()) {
         //     cout << it->first << "; "<<it->second << endl;
         //     it++;
@@ -410,6 +416,8 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     cout << "=========================================================" << endl << endl;
 
     cout << "M-mer indexed : " << intToString(mmermap.size()) << endl;
+    cout << "M-mer skipped (seen less than " + intToString(min_ab) + " times): " << intToString(nb_mmer_skip_min) << endl;
+    cout << "M-mer skipped (seen more than " + intToString(max_ab) + " times): " << intToString(nb_mmer_skip_max) << endl;
     cout << "Color indexed : " << intToString(colormap_entries) << endl;
     cout << "\t Total color created : " << intToString(total_nb_color) << endl;
     cout << "Number of reads in the file : "  << intToString(global_num_read) << endl;
@@ -424,10 +432,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             it++;
         }
     }
-
-    somme_taille_mmerid_mmermap = mmermap.size() * 8;
-    somme_taille_colorid_mmermap = mmermap.size() * 4;
-    somme_taille_colorid_cmap = colormap_entries * 8;
 }
 
 
@@ -589,17 +593,14 @@ void Index_color::incremente_color(color_map& colormap, icolor color_id) {
 
 
 void Index_color::decremente_color(color_map& colormap, icolor color_id) {
-    cout << "Decremente : " << color_id << " / " << colormap[color_id] << endl;
-
     bool to_delete = colormap[color_id].decremente_occurence();
     if(to_delete) {
-        cout << "Color remove : " << color_id << endl;
         colormap.erase(color_id);
     }
 }
 
 
-vector<pair<string,string>> Index_color::query_sequence_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const vector<string>& query_sequences, uint16_t num_thread){
+vector<pair<string,uint32_t>> Index_color::query_sequence_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const vector<string>& query_sequences, uint16_t num_thread){
     vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
     return verif_fp(poss_reads, query_sequences, threshold, num_thread);
 }
@@ -610,8 +611,8 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 
     if(fichier) {
 
-        //vector<pair<string,uint32_t>> vect_reads;
-        vector<pair<string,string>> vect_reads;
+        vector<pair<string,uint32_t>> vect_reads;
+        //vector<pair<string,string>> vect_reads;
         vector<string> lines;
         vector<mmer>  global_ml;
         minimizerLister ml = minimizerLister(k, m);
@@ -646,8 +647,8 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         fichier.close();
         sortAndRemoveDuplicates(global_ml);
         vect_reads = query_sequence_fp(mmermap, colormap, global_ml, threshold,lines,num_thread);
-        //sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
-        sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,string> &left, const pair<string,string> &right) {return left.second > right.second;});
+        sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
+        //sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,string> &left, const pair<string,string> &right) {return left.second > right.second;});
 
 
         #pragma omp critical (writefile)
@@ -655,8 +656,8 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
             ofstream out(file_out, ios::out | ios::trunc);
             if(format == "reads"){
                 for(auto s : vect_reads) {
-                    //out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
-                    out <<s.second+'\n'+ s.first  << endl;
+                    out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
+                    //out <<s.second+'\n'+ s.first  << endl;
                 }
             }
             else{
@@ -716,7 +717,7 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
                 curr_id_color = mmermap[minlist[i]];
                 auto it_color = colormap[curr_num_map].find(curr_id_color);
                 #pragma omp atomic
-                minimizer_match ++;
+                minimizer_match++;
                 curr_ids_read = it_color->second.get_vect_ireads();
                 for(auto id_read : curr_ids_read) {
                     #pragma omp critical (id_to_count)
@@ -736,6 +737,10 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
         }
         it++;
     }
+    for(auto elt : res){
+        cout << elt << ",";
+    }
+    cout << endl;
     return res;
 }
 
@@ -756,8 +761,9 @@ string Index_color::get_header(iread i) {
 
 
 
-vector<pair<string,string>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread){
-    vector<pair<string,string>> reads_to_return;
+vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread){
+    //vector<pair<string,string>> reads_to_return;
+    vector<pair<string,uint32_t>> reads_to_return;
     minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
 
@@ -777,8 +783,8 @@ vector<pair<string,string>> Index_color::verif_fp(const vector<iread>& reads_to_
             if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
                 #pragma omp critical
                 {
-                    //reads_to_return.push_back({read_seq,reads_to_verify[i]});
-                    reads_to_return.push_back({read_seq,header_seq});
+                    reads_to_return.push_back({read_seq,reads_to_verify[i]});
+                    //reads_to_return.push_back({read_seq,header_seq});
                 }
             }
         }

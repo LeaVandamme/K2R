@@ -22,7 +22,6 @@ uint16_t min_ab(2);
 uint16_t max_ab(1000);
 uint16_t num_thread(1);
 string read_file(""), binary_prefix("binary_index");
-bool keep_all(false);
 bool max_ab_on(false);
 bool homocompression(false);
 
@@ -43,8 +42,7 @@ void PrintHelp()
 			"-s                       :     Counting bloom filter size (log(2), default " << intToString(counting_bf_size) << ")\n"
 			"-h                       :     Homocompression of reads \n"
 			"--min-ab                 :     Minimizers minimum abundance (default: << " << min_ab << ")\n"
-			"--max-ab                 :     Minimizers maximum abundance (default: << " << max_ab << ")\n"
-			"--keep-all               :     Keep all minimizers (minimum abundance = 1, no maximum ; default : false)";
+			"--max-ab                 :     Minimizers maximum abundance (default: << " << max_ab << ", must be < 2^16)\n";
 
 
 	exit(1);
@@ -59,7 +57,6 @@ void ProcessArgs(int argc, char** argv)
 	{
 		{"min-ab", required_argument, nullptr, 'min'},
 		{"max-ab", required_argument, nullptr, 'max'},
-		{"keep-all", no_argument, nullptr, 'all'},
 		{nullptr, no_argument, nullptr, 0}
 	};
 	while (true)
@@ -99,10 +96,6 @@ void ProcessArgs(int argc, char** argv)
 				max_ab_on = true;
 				max_ab=stoi(optarg);
 				break;
-			case 'all':
-				keep_all = true;
-				min_ab = 1;
-				break;
 			case '?': 
 				PrintHelp();
 				break;
@@ -127,7 +120,6 @@ int main(int argc, char *argv[]){
 		num_thread=(1);
 		read_file=("");
 		binary_prefix=("binary_index");
-		keep_all=(false);
 		max_ab_on=(false);
 		homocompression=(false);
 
@@ -145,7 +137,7 @@ int main(int argc, char *argv[]){
 		cout << "INDEX CONSTRUCTION" << endl;
 		cout << "=========================================================" << endl << endl;
 		cout << "Start indexing the file : " + read_file << endl << endl;
-		index_color.create_index_mmer_no_unique(read_file, k, m, min_ab, max_ab, keep_all, counting_bf_size, homocompression, num_thread);
+		index_color.create_index_mmer_no_unique(read_file, k, m, min_ab, max_ab, counting_bf_size, homocompression, num_thread);
 		auto end_indexing = high_resolution_clock::now();
 		auto indexing = duration_cast<seconds>(end_indexing - start_indexing);
 

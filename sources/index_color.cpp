@@ -647,7 +647,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 
         #pragma omp critical (writefile)
         {
-            ofstream out(file_out, ios::out | ios::trunc);
+            ofstream out(file_out, ios::out | ios::app);
             if(format == "reads"){
                 for(auto s : vect_reads) {
                     out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
@@ -681,8 +681,8 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
                     getline(fichier,ligne);
                 }
                 size_t pos = ligne.find_last_of("/");
-                out = outputprefix + "_" + ligne.substr(pos+1, '.');
-                query_fasta(ligne, out, threshold, num_thread, format);
+                //out = outputprefix + "_" + ligne.substr(pos+1, '.');
+                query_fasta(ligne, outputprefix, threshold, num_thread, format);
             }
         }
     }

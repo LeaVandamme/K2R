@@ -96,7 +96,7 @@ void ProcessArgs(int argc, char** argv)
 				max_ab_on = true;
 				max_ab=stoi(optarg);
 				break;
-			case '?': 
+			case '?':
 				PrintHelp();
 				break;
 			default:
@@ -124,8 +124,8 @@ int main(int argc, char *argv[]){
 		homocompression=(false);
 
 
-		
-        ProcessArgs(argc, argv);	
+
+        ProcessArgs(argc, argv);
         if (argc < 2){
             PrintHelp();
         }
@@ -141,9 +141,9 @@ int main(int argc, char *argv[]){
 		auto end_indexing = high_resolution_clock::now();
 		auto indexing = duration_cast<seconds>(end_indexing - start_indexing);
 
-		cout << "Indexing takes " << indexing.count() << " seconds." << endl;
+		//cout << "Indexing takes " << indexing.count() << " seconds." << endl;
 		uint64_t memory_used_index = getMemorySelfMaxUsed();
-		cout << "Resource usage : " << intToString(memory_used_index) << " Ko" << endl;
+		//cout << "Resource usage : " << intToString(memory_used_index) << " Ko" << endl;
 		cout << endl << "SERIALIZATION" << endl;
 		cout << "=========================================================" << endl;
 
@@ -155,9 +155,7 @@ int main(int argc, char *argv[]){
 		index_color.serialize_colormap(binary_file_colormap);
 		auto end_serializing = high_resolution_clock::now();
 		auto serializing = duration_cast<seconds>(end_serializing - start_serializing);
-		cout << "Serialization takes : " << serializing.count() << " seconds." << endl;
+		// cout << "Serialization takes : " << serializing.count() << " seconds." << endl;
 
         return 0;
     }
-        
-

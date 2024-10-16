@@ -20,21 +20,24 @@ void sortAndRemoveDuplicates(vector<uint64_t>& vec) {
 }
 
 uint64_t countSharedSuccessiveElements(const vector<uint64_t>& vec1, const vector<uint64_t>& vec2) {
+
     uint64_t count = 0;
     uint64_t max = 0;
     uint64_t i = 0, j = 0;
+    uint64_t j_use = j;
     while (j < vec2.size()) {
-        if (vec1[i] != vec2[j]) {
+        if (vec1[i] != vec2[j_use]) {
             if(count > max){
                 max = count;
             }
             count = 0;
             i = 0;
             ++j;
+            j_use = j;
         }else {
             ++count;
             ++i;
-            ++j;
+            ++j_use;
             if(count > max){
                 max = count;
             }
@@ -46,8 +49,8 @@ uint64_t countSharedSuccessiveElements(const vector<uint64_t>& vec1, const vecto
 uint64_t getMemorySelfMaxUsed (){
 	uint64_t result = 0;
 	struct rusage usage;
-	if (getrusage(RUSAGE_SELF, &usage)==0){  
-        result = usage.ru_maxrss;  
+	if (getrusage(RUSAGE_SELF, &usage)==0){
+        result = usage.ru_maxrss;
     }
 	return result;
 }
@@ -92,10 +95,3 @@ uint32_t xorshift32(uint32_t state) {
     state ^= state << 5;
     return state;
 }
-
-
-
-
-
-
-

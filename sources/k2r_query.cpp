@@ -91,7 +91,7 @@ void ProcessArgs(int argc, char** argv)
 			case 'match':
 				format = "match";
 				break;
-			case '?': 
+			case '?':
 				PrintHelp();
 				break;
 			default:
@@ -102,7 +102,7 @@ void ProcessArgs(int argc, char** argv)
 }
 
 int main(int argc, char *argv[]){
-    
+
     ProcessArgs(argc, argv);
     if (argc < 2){
         PrintHelp();
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]){
             cout << "=========================================================" << endl << endl;
             cout << "Beginning of query : " + query_file << endl;
             auto start_querying_seq = high_resolution_clock::now();
-            cout << format << endl;
+            cout << "Format : " << format << endl;
             index_color.query_fof(query_file, output_prefix, threshold, num_thread, format);
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);

@@ -841,7 +841,10 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
             }
             kmers_read=ml.get_kmer_list(read_seq);
 
-            uint64_t shared_kmers(countSharedSuccessiveElements(kmer_sequence, kmers_read));
+            std::sort(kmer_sequence.begin(), kmer_sequence.end());
+            std::sort(kmers_read.begin(), kmers_read.end());
+            //uint64_t shared_kmers(countSharedSuccessiveElements(kmer_sequence, kmers_read));
+            uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
             if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
                 #pragma omp critical (add_res)
                 {

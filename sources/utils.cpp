@@ -46,6 +46,26 @@ uint64_t countSharedSuccessiveElements(const vector<uint64_t>& vec1, const vecto
     return max;
 }
 
+uint64_t countSharedElements(const vector<uint64_t>& vec1, const vector<uint64_t>& vec2) {
+
+    uint32_t i = 0, j = 0;
+    uint32_t res = 0;
+
+    while (i < vec1.size() && j < vec2.size()) {
+        if (vec1[i] == vec2[j]) {
+            i++;
+            j++;
+            res++;
+        } else if (vec1[i] > vec2[j]) {
+            j++;
+        } else {
+            i++;
+        }
+    }
+
+    return res;
+}
+
 uint64_t getMemorySelfMaxUsed (){
 	uint64_t result = 0;
 	struct rusage usage;

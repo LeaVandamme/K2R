@@ -110,6 +110,7 @@ void ProcessArgs(int argc, char** argv)
 
 
 int main(int argc, char *argv[]){
+
 		putenv("OMP_STACKSIZE=128M");
 
 		k=(31);

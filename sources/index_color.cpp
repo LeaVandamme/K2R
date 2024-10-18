@@ -93,10 +93,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     global_num_read++;
                 }
 
-                // #pragma omp critical (progress_bar)
-                // {
-                //     afficherBarreTelechargement(global_num_read,total_num_read);
-                // }
+                #pragma omp critical (progress_bar)
+                {
+                    afficherBarreTelechargement(global_num_read,total_num_read);
+                }
                 uint64_t mmer_hash, ind_to_insert;
                 if (ligne.size() >= k) {
                     if(homocomp) {
@@ -151,10 +151,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         clock_gettime(CLOCK_REALTIME, &end_bf_real);
         long seconds = end_bf.tv_sec - begin_index.tv_sec;
         long seconds_real = end_bf_real.tv_sec - begin_index_real.tv_sec;
-        // cout << "Wall-clock time for STEP 1 : " << seconds_real << " seconds." << endl;
-        cout << endl;
-        cout << "M-mer skipped (seen less than " + intToString(min_ab) + " times): " << intToString(nb_mmer_skip_min) << endl;
-        cout << "M-mer skipped (seen more than " + intToString(max_ab) + " times): " << intToString(nb_mmer_skip_max) << endl;
+        cout << "Wall-clock time for STEP 1 : " << seconds_real << " seconds." << endl;
         cout << endl;
 
         cout << "STEP 2 : Index construction" << endl;
@@ -166,7 +163,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     }
 
     ifstream fichier_scd(read_file, ios::in);
-    // zstr::ifstream fichier_scd(read_file, ios::in);
 
     if(fichier_scd) {
         bool eof = false;
@@ -208,10 +204,10 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                     eof = fichier_scd.eof();
                 }
 
-                // #pragma omp critical (progress_bar)
-                // {
-                //     afficherBarreTelechargement(global_num_read,total_num_read);
-                // }
+                #pragma omp critical (progress_bar)
+                {
+                    afficherBarreTelechargement(global_num_read,total_num_read);
+                }
 
                 // Ne regarde que les lignes plus grandes que k
                 if (ligne.size() >= k) {
@@ -333,7 +329,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         for (uint j = 1; j < list_mmers.size(); j++) {
                             if (list_mmers[j].first != prev_color) {
                                 // Si tous les mmers de la couleurs sont dans ce nouveau read (TODO mutex sur colormap[prev_color % 1024] ?)
-                                // omp_set_lock(&(list_colormap_key_mutex[prev_color % 1024]));
                                 if (cpt == colormap[prev_color % 1024][prev_color].get_nb_occ()) {
                                     // On ajoute ce read à la couleur
                                     #pragma omp critical (colormap)
@@ -369,7 +364,6 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                     // On ajoutera plus tard un lien entre cet idcolor et la nouvelle couleur dans la colormap
                                     list_creation_colormap.push_back({new_id, color_to_insert});
                                 }
-                                // omp_unset_lock(&(list_colormap_key_mutex[prev_color % 1024]));
 
                                 cpt = 1;
                                 prev_color = list_mmers[j].first;
@@ -425,11 +419,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
             }
 
         }
-        // #pragma omp critical (progress_bar)
-        // {
-        // afficherBarreTelechargement(total_num_read,total_num_read);
-        // cout << endl;
-        // }
+        #pragma omp critical (progress_bar)
+        {
+        afficherBarreTelechargement(total_num_read,total_num_read);
+        cout << endl;
+        }
 
         for(uint i = 0; i < 1024; i++) {
             omp_destroy_lock(&(list_colormap_key_mutex[i]));
@@ -453,7 +447,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         clock_gettime(CLOCK_REALTIME, &end_crea_real);
         auto seconds = end_crea.tv_sec - end_bf.tv_sec;
         auto seconds_real = end_crea_real.tv_sec - end_bf_real.tv_sec;
-        // cout << "Wall-clock time for STEP 2 : " << seconds_real << " seconds." << endl;
+        cout << "Wall-clock time for STEP 2 : " << seconds_real << " seconds." << endl;
         cout << endl;
     }else {
         cerr << "Error opening the read file : " << read_file << endl;
@@ -464,17 +458,11 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
         colormap_entries += colormap[i].size();
     }
 
-    // mmer_map::iterator it = mmermap.begin();
-    // while (it != mmermap.end()) {
-    //     cout << "##" << it->first << ":" << colormap[it->second%1024][it->second] << endl;
-    //     it++;
-    // }
-
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end_index);
     clock_gettime(CLOCK_REALTIME, &end_index_real);
     auto seconds = end_index.tv_sec - begin_index.tv_sec;
     auto seconds_real = end_index_real.tv_sec - begin_index_real.tv_sec;
-    // cout << "Total wall-clock time : " << seconds_real << " seconds." << endl;
+    cout << "Total wall-clock time : " << seconds_real << " seconds." << endl;
     cout << endl << "KEY NUMBERS" << endl;
     cout << "=========================================================" << endl << endl;
 
@@ -710,21 +698,18 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         fichier.close();
         sortAndRemoveDuplicates(global_ml);
         vect_reads = query_sequence_fp(mmermap, colormap, global_ml, threshold,lines,num_thread);
-        #pragma omp critical (cout)
-        {
-            cout << file_in << "\t\t" << vect_reads.size() << endl;
-        }
         sort(vect_reads.begin(), vect_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
 
         #pragma omp critical (writefile)
         {
-            ofstream out(file_out, ios::out | ios::trunc);
             if(format == "reads"){
+                ofstream out(file_out, ios::out | ios::trunc);
                 for(auto s : vect_reads) {
                     out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
                 }
             }
             else{
+                ofstream out(file_out, ios::out | ios::app);
                 out << file_in << " : " << vect_reads.size() << endl;
             }
         }
@@ -750,9 +735,16 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
                     getline(fichier,ligne);
                 }
                 size_t pos = ligne.find_last_of("/");
-                string out = outputprefix + "_" + ligne.substr(pos+1, '.');
-                if (!fichier.eof()) {
-                    query_fasta(ligne, out, threshold, num_thread, format);
+                if(format == "reads"){
+                    string out = outputprefix + "_" + ligne.substr(pos+1, '.');
+                    if (!fichier.eof()) {
+                        query_fasta(ligne, out, threshold, num_thread, format);
+                    }
+                }
+                else{
+                    if (!fichier.eof()) {
+                        query_fasta(ligne, outputprefix, threshold, num_thread, format);
+                    }                    
                 }
             }
         }

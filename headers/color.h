@@ -30,7 +30,7 @@ using namespace std;
 class Color{
 
     public:
-        const static uint SIZEBUFFER=4;
+        const static uint SIZEBUFFER=32;
         uint32_t compressed_array_size;
         string compressed_array;
         uint32_t nb_occ;
@@ -38,6 +38,10 @@ class Color{
         uint32_t nb_elem_compressed;
         uint32_t last_id_reads[SIZEBUFFER];
         static uint color_deleted;
+
+        // static void updateSIZEBUFFER(uint n) {
+        //     Color::SIZEBUFFER = n;
+        // }
 
         Color();
         Color(iread id);
@@ -47,20 +51,20 @@ class Color{
         ~Color();
 
          bool operator<(const Color& other) const {
-        // Implement your comparison logic here.
-        // For example, compare based on compressed_array_size:
-        if (compressed_array_size < other.compressed_array_size) return true;
-        if (compressed_array_size > other.compressed_array_size) return false;
+            // Implement your comparison logic here.
+            // For example, compare based on compressed_array_size:
+            if (compressed_array_size < other.compressed_array_size) return true;
+            if (compressed_array_size > other.compressed_array_size) return false;
 
-        // If compressed_array_size is equal, compare by compressed_array:
-        if (compressed_array < other.compressed_array) return true;
-        if (compressed_array > other.compressed_array) return false;
+            // If compressed_array_size is equal, compare by compressed_array:
+            if (compressed_array < other.compressed_array) return true;
+            if (compressed_array > other.compressed_array) return false;
 
-      
 
-        // If all members are equal, return false (they are not less than each other)
-        return false;
-    }
+
+            // If all members are equal, return false (they are not less than each other)
+            return false;
+        }
 
 
         Color& operator=(Color&& color) noexcept{
@@ -73,8 +77,8 @@ class Color{
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
             return *this;
-        } 
-        
+        }
+
         Color& operator=(const Color& color) {
             this->compressed_array_size = color.compressed_array_size;
             this->nb_elem_compressed=color.nb_elem_compressed;
@@ -85,18 +89,18 @@ class Color{
                 this->last_id_reads[i] = color.last_id_reads[i];
             }
             return *this;
-        } 
-
-
-    Color(const Color& color) {
-         this->compressed_array_size = color.compressed_array_size;
-        this->nb_elem_compressed=color.nb_elem_compressed;
-        this->compressed_array = color.compressed_array;
-        this->nb_occ = color.nb_occ;
-        this->nb_elem_last = color.nb_elem_last;
-        for(uint i =0; i<SIZEBUFFER ; i++){
-            this->last_id_reads[i] = color.last_id_reads[i];
         }
+
+
+        Color(const Color& color) {
+            this->compressed_array_size = color.compressed_array_size;
+            this->nb_elem_compressed=color.nb_elem_compressed;
+            this->compressed_array = color.compressed_array;
+            this->nb_occ = color.nb_occ;
+            this->nb_elem_last = color.nb_elem_last;
+            for(uint i =0; i<SIZEBUFFER ; i++){
+                this->last_id_reads[i] = color.last_id_reads[i];
+            }
         }
 
 

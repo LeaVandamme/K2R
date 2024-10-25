@@ -52,17 +52,21 @@ clean:
 rebuild: clean $(EXEC)
 
 SMALL_FILE_TO_INDEX = example/reads/reads1000.fasta #log/celill50k_noN.fa log/bench_coverage_ecoli/ecoli01p_10000_0.01_50.fa log/bench_coverage_cel/cel_10000_0.01_10.fa
-FILE_TO_INDEX = log/bench_coverage_ecoli/ecoli01p_10000_0.01_200.fa #log/bench_coverage_cel/cel_10000_0.01_30.fa log/celill500k_noN.fa 
+# FILE_TO_INDEX = log/bench_coverage_ecoli/ecoli01p_10000_0.01_200.fa #log/bench_coverage_cel/cel_10000_0.01_30.fa log/celill500k_noN.fa
+FILE_TO_INDEX = log/sorted_DRR395241_90x_noN.fasta
 LARGE_TO_INDEX = log/celill50M_noN.fa #log/bench_coverage_ecoli/ecoli01p_10000_0.01_500.fa log/bench_coverage_cel/cel_10000_0.01_70.fa
 
 test_index_mono:
 	./k2r_index -r $(FILE_TO_INDEX) -b example/output/output_binary -s 32 --min-ab 1 --max-ab 50000 -t 1
 
 test_index_multi:
-	./k2r_index -r $(FILE_TO_INDEX) -b example/output/output_binary -s 32 --min-ab 1 --max-ab 50000 -t 8
+	./k2r_index -r $(FILE_TO_INDEX) -b example/output/output_binary -s 32 --min-ab 1 --max-ab 50000 -t 48
+
+test_index_bi:
+	./k2r_index -r $(FILE_TO_INDEX) -b example/output/output_binary -s 32 --min-ab 1 --max-ab 50000 -t 2
 
 test_index_multiVSmono:
-	bash test_multi.sh 
+	bash test_multi.sh
 
 test_all_index_mono:
 	./k2r_index -r $(SMALL_FILE_TO_INDEX) -b example/output/output_binary -s 32 --min-ab 1 --max-ab 50000 -t 1; \
@@ -95,5 +99,3 @@ test_all_index_multi_loop:
 		./k2r_query -f example/sequences/fof.txt -o out_test -b example/output/output_binary -r 1 -t 1 --reads; \
 		bash check.sh fof $$dataset example/sequences/fof.txt out_test; \
 	done
-
-

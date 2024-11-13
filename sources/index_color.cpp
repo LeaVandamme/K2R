@@ -696,8 +696,8 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
                 {
                     getline(fichier,ligne);
                 }
-                size_t pos = ligne.find_last_of("/");
                 if(format == "reads"){
+                    size_t pos = ligne.find_last_of("/");
                     string out = outputprefix + "_" + ligne.substr(pos+1, '.');
                     if (!fichier.eof()) {
                         query_fasta(ligne, out, threshold, num_thread, format);
@@ -736,17 +736,13 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
             curr_ids_read = it_color->second.get_vect_ireads();
             for(auto id_read : curr_ids_read) {
                 id_to_count[id_read]++;
+                if (id_to_count[id_read] >= threshold*minlist.size()) {
+                    if (find(res.begin(), res.end(),id_read)==res.end()){
+                        res.push_back(id_read);
+                    }
+                }
             }
         }
-    }
-
-    // VERIF SEUIL
-    auto it = id_to_count.begin();
-    while (it != id_to_count.end()) {
-        if ((it->second) >= threshold*minlist.size()) {
-            res.push_back(it->first);
-        }
-        it++;
     }
     return res;
 }
@@ -778,21 +774,15 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
         vector<kmer> kmers_read;
         string read_seq, header_seq;
         uint cpt = 0;
-        #pragma omp critical (globalml)
-        {
-            header_seq = get_header(reads_to_verify[i]);
-            read_seq = get_read_sequence(reads_to_verify[i]);
-        }
+        header_seq = get_header(reads_to_verify[i]);
+        read_seq = get_read_sequence(reads_to_verify[i]);
         kmers_read=ml.get_kmer_list(read_seq);
 
         std::sort(kmer_sequence.begin(), kmer_sequence.end());
         std::sort(kmers_read.begin(), kmers_read.end());
         uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
         if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
-            #pragma omp critical (add_res)
-            {
-                reads_to_return.push_back({read_seq,reads_to_verify[i]});
-            }
+            reads_to_return.push_back({read_seq,reads_to_verify[i]});
         }
     }
     cout << "Possible reads : " << reads_to_verify.size() << "; without FP : " << reads_to_return.size() << endl;

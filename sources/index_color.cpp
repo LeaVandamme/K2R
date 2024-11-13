@@ -644,10 +644,9 @@ vector<pair<string,uint32_t>> Index_color::query_sequence_fp_reads(mmer_map& mme
 
 void Index_color::query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread, string format) {
     ifstream fichier(file_in, ios::in);
+    ofstream out(file_out, ios::out | ios::app);
 
     if(fichier) {
-
-
         vector<pair<string,uint32_t>> vect_reads_reads;
         vector<iread> vect_reads_match;
         vector<mmer>  global_ml;
@@ -655,14 +654,10 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         vector<mmer> local_ml;
         string ligne;
         while(!fichier.eof()) {
-
-            #pragma omp critical (queryfasta)
-            {
-                getline(fichier,ligne);
-                if(ligne.size()>0){
-                    if(ligne[0] != '>'){
-                        local_ml = ml.get_minimizer_list(ligne);
-                    }
+            getline(fichier,ligne);
+            if(ligne.size()>0){
+                if(ligne[0] != '>'){
+                    local_ml = ml.get_minimizer_list(ligne);
                 }
             }
             vect_reads_reads.clear();
@@ -673,21 +668,14 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         if(format == "reads"){
             vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, local_ml, threshold,ligne,num_thread);
             sort(vect_reads_reads.begin(), vect_reads_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
-
-            #pragma omp critical (writefile)
-            {
-                ofstream out(file_out, ios::out | ios::trunc);
-                for(auto s : vect_reads_reads) {
-                    out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
-                }
+            for(auto s : vect_reads_reads) {
+                out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
             }
         }
         else{
             vect_reads_match = query_sequence_fp_match(mmermap, colormap, local_ml, threshold,ligne,num_thread);
-            ofstream out(file_out, ios::out | ios::app);
             out << file_in << " : " << vect_reads_match.size() << endl;
         }
-
     }
     else {
         cerr << "Error opening the file" << endl;

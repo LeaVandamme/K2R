@@ -632,13 +632,13 @@ void Index_color::decremente_color(color_map& colormap, icolor color_id) {
 }
 
 
-vector<iread> Index_color::query_sequence_fp_match(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const vector<string>& query_sequences, uint16_t num_thread){
+vector<iread> Index_color::query_sequence_fp_match(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequences, uint16_t num_thread){
     return get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
 }
 
-vector<pair<string,uint32_t>> Index_color::query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const vector<string>& query_sequences, uint16_t num_thread){
+vector<pair<string,uint32_t>> Index_color::query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread){
     vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
-    return verif_fp(poss_reads, query_sequences, threshold, num_thread);
+    return verif_fp(poss_reads, query_sequence, threshold, num_thread);
 }
 
 
@@ -650,42 +650,28 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 
         vector<pair<string,uint32_t>> vect_reads_reads;
         vector<iread> vect_reads_match;
-        vector<string> lines;
         vector<mmer>  global_ml;
         minimizerLister ml = minimizerLister(k, m);
-        // #pragma omp parallel num_threads(num_thread)
-        {
-            vector<mmer>  local_ml;
-            string ligne;
-            while(!fichier.eof()) {
+        vector<mmer> local_ml;
+        string ligne;
+        while(!fichier.eof()) {
 
-                #pragma omp critical (queryfasta)
-                {
-                    getline(fichier,ligne);
-                    if(ligne.size()>0){
-                        if(ligne[0] != '>'){
-                            lines.push_back(ligne);
-                        }
-                    }
-                }
-                vect_reads_reads.clear();
-                vect_reads_match.clear();
+            #pragma omp critical (queryfasta)
+            {
+                getline(fichier,ligne);
                 if(ligne.size()>0){
-                    if (ligne[0] != '>' ) {
+                    if(ligne[0] != '>'){
                         local_ml = ml.get_minimizer_list(ligne);
-
-                        #pragma omp critical (globalml)
-                        {
-                            global_ml.insert(global_ml.end(), local_ml.begin(), local_ml.end());
-                        }
                     }
                 }
             }
+            vect_reads_reads.clear();
+            vect_reads_match.clear();
         }
         fichier.close();
-        sortAndRemoveDuplicates(global_ml);
+        sortAndRemoveDuplicates(local_ml);
         if(format == "reads"){
-            vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, global_ml, threshold,lines,num_thread);
+            vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, local_ml, threshold,ligne,num_thread);
             sort(vect_reads_reads.begin(), vect_reads_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
 
             #pragma omp critical (writefile)
@@ -697,7 +683,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
             }
         }
         else{
-            vect_reads_match = query_sequence_fp_match(mmermap, colormap, global_ml, threshold,lines,num_thread);
+            vect_reads_match = query_sequence_fp_match(mmermap, colormap, local_ml, threshold,ligne,num_thread);
             ofstream out(file_out, ios::out | ios::app);
             out << file_in << " : " << vect_reads_match.size() << endl;
         }
@@ -750,26 +736,18 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
 vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color_map* colormap, const vector<mmer> minlist, double threshold, uint16_t num_thread){
     ankerl::unordered_dense::map<iread, uint32_t> id_to_count;
     vector<iread> res;
-    //#pragma omp parallel num_threads(num_thread)
-    {
-        vector<iread> curr_ids_read;
-        uint32_t curr_num_map;
-        icolor curr_id_color;
-        //#pragma omp for
-        for(uint32_t i = 0; i < minlist.size(); i++) {
-            if(mmermap.count(minlist[i]) != 0){
-                curr_num_map = mmermap[minlist[i]]%1024;
-                curr_id_color = mmermap[minlist[i]];
-                auto it_color = colormap[curr_num_map].find(curr_id_color);
-                #pragma omp atomic
-                minimizer_match++;
-                curr_ids_read = it_color->second.get_vect_ireads();
-                for(auto id_read : curr_ids_read) {
-                    #pragma omp critical (id_to_count)
-                    {
-                        id_to_count[id_read]++;
-                    }
-                }
+    vector<iread> curr_ids_read;
+    uint32_t curr_num_map;
+    icolor curr_id_color;
+    for(uint32_t i = 0; i < minlist.size(); i++) {
+        if(mmermap.count(minlist[i]) != 0){
+            curr_num_map = mmermap[minlist[i]]%1024;
+            curr_id_color = mmermap[minlist[i]];
+            auto it_color = colormap[curr_num_map].find(curr_id_color);
+            minimizer_match++;
+            curr_ids_read = it_color->second.get_vect_ireads();
+            for(auto id_read : curr_ids_read) {
+                id_to_count[id_read]++;
             }
         }
     }
@@ -802,35 +780,34 @@ string Index_color::get_header(iread i) {
 
 
 
-vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const vector<string>& sequences, double threshold, uint16_t num_thread){
+vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread){
     vector<pair<string,uint32_t>> reads_to_return;
     minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
 
-    //#pragma omp parallel num_threads(num_thread)
-    {
-        for(uint i(0); i<reads_to_verify.size(); i++) {
-            vector<kmer> kmers_read;
-            string read_seq, header_seq;
-            uint cpt = 0;
-            #pragma omp critical (globalml)
-            {
-                header_seq = get_header(reads_to_verify[i]);
-                read_seq = get_read_sequence(reads_to_verify[i]);
-            }
-            kmers_read=ml.get_kmer_list(read_seq);
 
-            std::sort(kmer_sequence.begin(), kmer_sequence.end());
-            std::sort(kmers_read.begin(), kmers_read.end());
-            uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
-            if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
-                #pragma omp critical (add_res)
-                {
-                    reads_to_return.push_back({read_seq,reads_to_verify[i]});
-                }
+    for(uint i(0); i<reads_to_verify.size(); i++) {
+        vector<kmer> kmers_read;
+        string read_seq, header_seq;
+        uint cpt = 0;
+        #pragma omp critical (globalml)
+        {
+            header_seq = get_header(reads_to_verify[i]);
+            read_seq = get_read_sequence(reads_to_verify[i]);
+        }
+        kmers_read=ml.get_kmer_list(read_seq);
+
+        std::sort(kmer_sequence.begin(), kmer_sequence.end());
+        std::sort(kmers_read.begin(), kmers_read.end());
+        uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
+        if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
+            #pragma omp critical (add_res)
+            {
+                reads_to_return.push_back({read_seq,reads_to_verify[i]});
             }
         }
     }
+    cout << "Possible reads : " << reads_to_verify.size() << "; without FP : " << reads_to_return.size() << endl;
     return reads_to_return;
 }
 

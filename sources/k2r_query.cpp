@@ -40,7 +40,7 @@ void PrintHelp()
 			"\n TWEAK PARAMETERS\n"
             "-r                       :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default: " << intToString(threshold) << ")\n"
             "-t                       :     Number of threads used (default: " << intToString(num_thread) << ")\n"
-            "--reads OR --match       :     Output format (default: " << format << ", --reads create a fasta file for each query sequence, containing the matching reads ; --match only report the number of matches for each sequence, in a single file)\n";
+            "--reads OR --match       :     Output format (default: match, --reads create a fasta file for each query sequence, containing the matching reads ; --match only report the number of matches for each sequence, in a single file)\n";
 
 	exit(1);
 }
@@ -54,6 +54,7 @@ void ProcessArgs(int argc, char** argv)
 	{
         {"reads", no_argument, nullptr, 'reads'},
         {"match", no_argument, nullptr, 'match'},
+        {"fp", no_argument, nullptr, 'fp'},
 		{nullptr, no_argument, nullptr, 0}
 	};
 	while (true)
@@ -91,6 +92,9 @@ void ProcessArgs(int argc, char** argv)
 			case 'match':
 				format = "match";
 				break;
+            case 'fp':
+                format = "fp";
+                break;
 			case '?':
 				PrintHelp();
 				break;

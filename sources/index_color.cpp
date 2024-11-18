@@ -638,7 +638,12 @@ vector<iread> Index_color::query_sequence_fp_match(mmer_map& mmermap, color_map*
 
 vector<pair<string,uint32_t>> Index_color::query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread){
     vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
-    return verif_fp(poss_reads, query_sequence, threshold, num_thread);
+    return verif_fp(poss_reads, query_sequence, threshold, num_thread, "reads");
+}
+
+vector<pair<string,uint32_t>> Index_color::query_sequence_fp_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread){
+    vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
+    return verif_fp(poss_reads, query_sequence, threshold, num_thread, "fp");
 }
 
 
@@ -671,6 +676,9 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
             for(auto s : vect_reads_reads) {
                 out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
             }
+        }
+        else if(format == "fp"){
+            vect_reads_reads = query_sequence_fp_fp(mmermap, colormap, local_ml, threshold,ligne,num_thread);
         }
         else{
             vect_reads_match = query_sequence_fp_match(mmermap, colormap, local_ml, threshold,ligne,num_thread);
@@ -764,7 +772,7 @@ string Index_color::get_header(iread i) {
 
 
 
-vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread){
+vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread, string format){
     vector<pair<string,uint32_t>> reads_to_return;
     minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
@@ -785,7 +793,14 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
             reads_to_return.push_back({read_seq,reads_to_verify[i]});
         }
     }
-    cout << "Possible reads : " << reads_to_verify.size() << "; without FP : " << reads_to_return.size() << endl;
+    if(format == "fp"){
+        string filenameCSV = "query_10000_500.csv";
+        ofstream csv_file(filenameCSV, ios::out | ios::app);
+        if(reads_to_verify.size() != 0){
+            csv_file << reads_to_verify.size() << "," << reads_to_return.size() << "," << float(reads_to_return.size()/reads_to_verify.size()) << "\n";
+        }
+    }
+
     return reads_to_return;
 }
 

@@ -34,7 +34,7 @@ void PrintHelp()
 			"\n INDEX CONSTRUCTION\n"
             "-r                       :     Build index from file (FASTA allowed)\n"
 			"-b                       :     Write index in binary files (default : binary_index) \n"
-            "-t                       :     Number of threads used (default: 1)\n"
+            "-t                       :     Number of threads used (default: 1, max: 5)\n"
 
 			"\n TWEAK PARAMETERS\n"
 			"-k                       :     k-mer size (default: " << intToString(k) << ")\n"
@@ -79,6 +79,9 @@ void ProcessArgs(int argc, char** argv)
 				break;
             case 't':
 				num_thread=stoi(optarg);
+				if(num_thread > 5){
+					num_thread = 5;
+				}
 				break;
             case 'k':
 				k=stoi(optarg);

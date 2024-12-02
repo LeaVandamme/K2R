@@ -66,8 +66,7 @@ class Index_color{
         void incremente_color(color_map& colormap, icolor color_id);
         void decremente_color(color_map& colormap, icolor color_id);
 
-        vector<pair<string,uint32_t>> query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold , const string& query_sequence, uint16_t num_thread);
-        vector<pair<string,uint32_t>> query_sequence_fp_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold , const string& query_sequence, uint16_t num_thread);
+        vector<pair<string,uint32_t>> query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold , const string& query_sequence, uint16_t num_thread, string format);
         vector<iread> query_sequence_fp_match(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold , const string& query_sequence, uint16_t num_thread);
 
         void query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread, string format);
@@ -80,7 +79,7 @@ class Index_color{
 
         seq homocompression(seq& sequence);
 
-        void afficherBarreTelechargement(int tailleActuelle, int tailleMax);
+        void progressBar(int tailleActuelle, int tailleMax);
 
 };
 #endif

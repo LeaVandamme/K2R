@@ -39,10 +39,6 @@ class Color{
         uint32_t last_id_reads[SIZEBUFFER];
         static uint color_deleted;
 
-        // static void updateSIZEBUFFER(uint n) {
-        //     Color::SIZEBUFFER = n;
-        // }
-
         Color();
         Color(iread id);
         Color(const Color& color, iread id);
@@ -51,18 +47,10 @@ class Color{
         ~Color();
 
          bool operator<(const Color& other) const {
-            // Implement your comparison logic here.
-            // For example, compare based on compressed_array_size:
             if (compressed_array_size < other.compressed_array_size) return true;
             if (compressed_array_size > other.compressed_array_size) return false;
-
-            // If compressed_array_size is equal, compare by compressed_array:
             if (compressed_array < other.compressed_array) return true;
             if (compressed_array > other.compressed_array) return false;
-
-
-
-            // If all members are equal, return false (they are not less than each other)
             return false;
         }
 

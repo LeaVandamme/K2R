@@ -257,7 +257,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         }
 
                         vector<pair<icolor, mmer>> list_mmers;
-                        uint32_t cpt_new_mmer = 0;
+                        uint64_t cpt_new_mmer = 0;
                         atomic<int> basic_color_id = -1;
                         vector<mmer> list_mmers_basic;
 
@@ -504,7 +504,7 @@ void Index_color::serialize_mmermap(string& output_file){
     file.write((char*) &binary_prefix_size, sizeof(binary_prefix_size));
     file.write((char*) &(binary_prefix[0]), binary_prefix.size());
 
-    uint32_t map_size=mmermap.size();
+    uint64_t map_size=mmermap.size();
     file.write((char*) &map_size, sizeof(map_size));
     for(mmer_map::iterator it=mmermap.begin() ; it!=mmermap.end() ; ++it){
         file.write((char *) &(it->first), sizeof(mmer));
@@ -543,7 +543,7 @@ void Index_color::deserialize_mmermap(string& input_file){
         binary_prefix.resize(binary_file_size);
         file.read((char*)&binary_prefix[0], binary_file_size);
 
-        uint32_t map_size;
+        uint64_t map_size;
         file.read((char*) &map_size, sizeof(map_size));
 
         for(uint32_t i = 0; i < map_size; i++){
@@ -731,7 +731,7 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
     vector<iread> curr_ids_read;
     uint32_t curr_num_map;
     icolor curr_id_color;
-    for(uint32_t i = 0; i < minlist.size(); i++) {
+    for(uint64_t i = 0; i < minlist.size(); i++) {
         if(mmermap.count(minlist[i]) != 0){
             curr_num_map = mmermap[minlist[i]]%1024;
             curr_id_color = mmermap[minlist[i]];
@@ -789,7 +789,7 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
         }
     }
     if(format == "fp"){
-        std::string csv_filename = "csv_10000_0.02_200_0.3.csv";
+        std::string csv_filename = "csv_10000_0.01_200_0.75.csv";
         std::ofstream csv_file(csv_filename, ios::out | ios::app);
         csv_file << reads_to_verify.size() << "," << reads_to_return.size() << "," << (double)reads_to_return.size()/reads_to_verify.size() << "\n";
         csv_file.close();

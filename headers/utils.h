@@ -14,8 +14,7 @@ uint64_t countSharedElements(const vector<uint64_t>& vec1, const vector<uint64_t
 uint64_t getMemorySelfMaxUsed ();
 
 string intToString(uint64_t num);
-uint32_t revhash(uint32_t x);
-uint32_t unrevhash(uint32_t x);
+uint64_t revhash(uint64_t x);
 uint64_t xorshift64(uint64_t seed) ;
 uint32_t xorshift32(uint32_t state);
 

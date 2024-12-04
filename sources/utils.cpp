@@ -86,17 +86,9 @@ string intToString(uint64_t num) {
   return s;
 }
 
-uint32_t revhash(uint32_t x) {
+uint64_t revhash(uint64_t x) {
 	x = ((x >> 16) ^ x) * 0x2c1b3c6d;
 	x = ((x >> 16) ^ x) * 0x297a2d39;
-	x = ((x >> 16) ^ x);
-	return x;
-}
-
-// unused
-uint32_t unrevhash(uint32_t x) {
-	x = ((x >> 16) ^ x) * 0x0cf0b109;
-	x = ((x >> 16) ^ x) * 0x64ea2d65;
 	x = ((x >> 16) ^ x);
 	return x;
 }

@@ -50,21 +50,6 @@ class minimizerLister{
         return res;
     }
 
-//     uint64_t rcb(uint64_t in, uint64_t n) {
-// 	// assume(n <= 32, "n=%u > 32", n);
-// 	// Complement, swap byte order
-// 	uint64_t res = __builtin_bswap64(in ^ 0xaaaaaaaaaaaaaaaa);
-// 	// Swap nuc order in bytes
-// 	const uint64_t c1 = 0x0f0f0f0f0f0f0f0f;
-// 	const uint64_t c2 = 0x3333333333333333;
-// 	res = ((res & c1) << 4) | ((res & (c1 << 4)) >> 4); // swap 2-nuc order in bytes
-// 	res = ((res & c2) << 2) | ((res & (c2 << 2)) >> 2); // swap nuc order in 2-nuc
-
-// 	// Realign to the right
-// 	res >>= 64 - 2 * n;
-// 	return res;
-// }
-
 
 
     uint64_t murmur64(uint64_t h) {
@@ -222,7 +207,7 @@ class minimizerLister{
             position_end=ref.size();
         }
         vector<mmer> result;
-        uint32_t old_minimizer, minimizer, last_minimizer;
+        mmer old_minimizer, minimizer, last_minimizer;
         last_minimizer = old_minimizer = minimizer = M_mask;
         uint64_t last_position(0);
         // FOREACH KMER

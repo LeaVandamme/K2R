@@ -16,7 +16,7 @@ K2R can index a set of reads from a FASTA file.
 Several options and parameters are available to adapt the creation of the index to your needs :
 
 ```
-./k2r_index -r read_file.fasta -b path_to_binary/binary_prefix -t nb_threads [OPTIONS]
+./k2r_index -r path_to_readfile/read_file.fasta -b path_to_binary/binary_prefix -t nb_threads [OPTIONS]
 ```
 
 ```
@@ -24,7 +24,7 @@ Arguments :
 
 -r  :  Build index from file (FASTA allowed)
 -b  :  Write index in binary files (default : binary_index)
--t  :  Number of threads used (default: 1)
+-t  :  Number of threads used (default: 1, maximum: 5)
 
 Options :
 
@@ -34,7 +34,6 @@ Options :
 -h           :  Homocompression of reads
 --min-ab     :  Minimizers minimum abundance (default: 2)
 --max-ab     :  Minimizers maximum abundance (default: 1000)
---keep-all   :  Keep all minimizers (minimum abundance = 1, no maximum ; default : false)
 ```
 
 
@@ -43,13 +42,13 @@ Options :
 K2R can launch several queries from a file of file (fof), containing paths to fasta files.
 
 ```
-./k2r_query -f /path_to_fof/fof.txt -o output_prefix -b path_to_index/index_prefix [OPTIONS]
+./k2r_query -f path_to_fof/fof.txt -o path_to_output/output_prefix -b path_to_index/index_prefix --match [OPTIONS]
 ```
 
 But can also launch a single request from a FASTA file :
 
 ```
-./k2r_query -s /path_to_fof/seq.fasta -o output_prefix -b path_to_index/index_prefix [OPTIONS]
+./k2r_query -s path_to_seq/seq.fasta -o path_to_output/output_prefix -b path_to_index/index_prefix --match [OPTIONS]
 ```
 
 Several options and parameters are available to adapt the queries :
@@ -60,10 +59,12 @@ Arguments :
 -s OR -f  :     Sequence file (FASTA) if a unique sequence is queried (-s), file of file if several sequences are queried (-f)
 -o        :     Write output reads in fasta file (default : query_output)
 -b        :     Index binary files prefix (default: binary_index)
+--reads OR --match : Output format (default: match, --reads create a fasta file for each query sequence, containing the matching reads ; --match only report the number of matches for each sequence, in a single file)
 
 Option :
 
 -r        :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default : 0.4)
+-t        :     Number of threads used (default: 1)
 ```
 
 ### Output files
@@ -73,9 +74,22 @@ K2R creates 2 binary files for each index :
 - [binary_prefix]_mmer.bin, which contains the association between each minimizer and its color identifier.
 - [binary_prefix]_color.bin, which contains the association between each color identifier and its color.
 
-K2R creates 1 file for each query.
 
-For example if the queries are launched on a file of file containing 100 paths, 100 files will be created containing the reads in which the sequences appear.
+Two options are available for queries : 
+
+- K2R creates 1 file for each query (for example if the queries are launched on a file of file containing 100 paths, 100 files will be created containing the reads in which the sequences appear)
+- K2R only creates a unique file, containing the number of matches (number of reads in which the sequences are seen). This file should look like this (the file is not sorted due to multithreading): 
+
+```
+example/sequences/sequence2.fasta : 9
+example/sequences/sequence1.fasta : 5
+example/sequences/sequence4.fasta : 9
+example/sequences/sequence3.fasta : 5
+example/sequences/sequence5.fasta : 9
+```
+
+
+
 
 ## Example
 
@@ -85,15 +99,13 @@ We choose to reduce the filter size to 2^26, as the dataset is sufficiently smal
 
 
 ```
-./k2r_index -r example/reads/reads.fasta -b example/output/output_binary -s 26
-
+./k2r_index -r example/reads/reads.fa -b example/output/output_binary -s 26 --min-ab 2 --max-ab 2000 -t 5
 ```
 
 Once the index has been created, the sequences can be queried using the following command :
 
 ```
-./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary -r 0.2
-
+./k2r_query -f example/sequences/fof.txt -o example/output/query_output -b example/output/output_binary --match -r 0.2 -t 5
 ```
 
 ## Citation

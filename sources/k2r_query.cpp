@@ -54,7 +54,6 @@ void ProcessArgs(int argc, char** argv)
 	{
         {"reads", no_argument, nullptr, 'reads'},
         {"match", no_argument, nullptr, 'match'},
-        {"fp", no_argument, nullptr, 'fp'},
 		{nullptr, no_argument, nullptr, 0}
 	};
 	while (true)
@@ -91,9 +90,6 @@ void ProcessArgs(int argc, char** argv)
 				break;
 			case 'match':
 				format = "match";
-				break;
-			case 'fp':
-				format = "fp";
 				break;
 			case '?':
 				PrintHelp();

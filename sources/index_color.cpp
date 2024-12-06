@@ -257,7 +257,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         }
 
                         vector<pair<icolor, mmer>> list_mmers;
-                        uint64_t cpt_new_mmer = 0;
+                        uint32_t cpt_new_mmer = 0;
                         atomic<int> basic_color_id = -1;
                         vector<mmer> list_mmers_basic;
 
@@ -504,7 +504,7 @@ void Index_color::serialize_mmermap(string& output_file){
     file.write((char*) &binary_prefix_size, sizeof(binary_prefix_size));
     file.write((char*) &(binary_prefix[0]), binary_prefix.size());
 
-    uint64_t map_size=mmermap.size();
+    uint32_t map_size=mmermap.size();
     file.write((char*) &map_size, sizeof(map_size));
     for(mmer_map::iterator it=mmermap.begin() ; it!=mmermap.end() ; ++it){
         file.write((char *) &(it->first), sizeof(mmer));
@@ -543,7 +543,7 @@ void Index_color::deserialize_mmermap(string& input_file){
         binary_prefix.resize(binary_file_size);
         file.read((char*)&binary_prefix[0], binary_file_size);
 
-        uint64_t map_size;
+        uint32_t map_size;
         file.read((char*) &map_size, sizeof(map_size));
 
         for(uint32_t i = 0; i < map_size; i++){
@@ -634,9 +634,9 @@ vector<iread> Index_color::query_sequence_fp_match(mmer_map& mmermap, color_map*
     return get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
 }
 
-vector<pair<string,uint32_t>> Index_color::query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread, string format){
+vector<pair<string,uint32_t>> Index_color::query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread){
     vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
-    return verif_fp(poss_reads, query_sequence, threshold, num_thread, format);
+    return verif_fp(poss_reads, query_sequence, threshold, num_thread);
 }
 
 
@@ -667,14 +667,11 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         fichier.close();
         sortAndRemoveDuplicates(local_ml);
         if(format == "reads"){
-            vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, local_ml, threshold,line,num_thread, format);
+            vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, local_ml, threshold,line,num_thread);
             sort(vect_reads_reads.begin(), vect_reads_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
             for(auto s : vect_reads_reads) {
                 out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
             }
-        }
-        if(format == "fp"){
-            vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, local_ml, threshold,line,num_thread, format);
         }
         else{
             vect_reads_match = query_sequence_fp_match(mmermap, colormap, local_ml, threshold,line,num_thread);
@@ -731,7 +728,7 @@ vector<iread> Index_color::get_possible_reads_threshold(mmer_map& mmermap, color
     vector<iread> curr_ids_read;
     uint32_t curr_num_map;
     icolor curr_id_color;
-    for(uint64_t i = 0; i < minlist.size(); i++) {
+    for(uint32_t i = 0; i < minlist.size(); i++) {
         if(mmermap.count(minlist[i]) != 0){
             curr_num_map = mmermap[minlist[i]]%1024;
             curr_id_color = mmermap[minlist[i]];
@@ -768,7 +765,7 @@ string Index_color::get_header(iread i) {
 
 
 
-vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread, string format){
+vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread){
     vector<pair<string,uint32_t>> reads_to_return;
     minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
@@ -788,13 +785,6 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
             reads_to_return.push_back({read_seq,reads_to_verify[i]});
         }
     }
-    if(format == "fp"){
-        std::string csv_filename = "csv_10000_0.01_200_0.75.csv";
-        std::ofstream csv_file(csv_filename, ios::out | ios::app);
-        csv_file << reads_to_verify.size() << "," << reads_to_return.size() << "," << (double)reads_to_return.size()/reads_to_verify.size() << "\n";
-        csv_file.close();
-    }
-
     return reads_to_return;
 }
 

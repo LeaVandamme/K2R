@@ -50,4 +50,3 @@ clean:
 	rm -rf $(EXEC) $(OBJ) $(OBJ_INDEX) $(OBJ_QUERY)*.dat .snakemake .vscode log/memory_res/ log/reads_res/
 
 rebuild: clean $(EXEC)
-

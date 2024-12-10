@@ -34,12 +34,12 @@ void PrintHelp()
 			"\n INDEX CONSTRUCTION\n"
             "-r                       :     Build index from file (FASTA allowed)\n"
 			"-b                       :     Write index in binary files (default : binary_index) \n"
-            "-t                       :     Number of threads used (default: 1, max: 5)\n"
 
 			"\n TWEAK PARAMETERS\n"
+			"-t                       :     Number of threads used (default: 1, max: 5)\n"
 			"-k                       :     k-mer size (default: " << intToString(k) << ")\n"
             "-m                       :     Minimizer size (default: " << intToString(m) << ")\n"
-			"-s                       :     Counting bloom filter size (log(2), default " << intToString(counting_bf_size) << ")\n"
+			"-s                       :     Counting bloom filter size (log(2), default " << intToString(counting_bf_size) << "). The size must be superior to the number of minimizers to index, to avoid a full structure.\n"
 			"-h                       :     Homocompression of reads \n"
 			"--min-ab                 :     Minimizers minimum abundance (default: << " << min_ab << ")\n"
 			"--max-ab                 :     Minimizers maximum abundance (default: << " << max_ab << ", must be < 2^16)\n";

@@ -34,13 +34,13 @@ void PrintHelp()
 
 			"\n INDEX QUERY \n"
             "-s OR -f                 :     Sequence file (FASTA) if a unique sequence is queried (-s), file of file if several sequences are queried (-f) \n"
-			"-o                       :     Write output reads in fasta file (default : query_output) \n"
-            "-b                       :     Read index from binary files (default: binary_index) \n"
+            "--reads OR --match       :     Output format (default: " << format << ", --reads create a fasta file for each query sequence, containing the matching reads (can be slower for a high number of sequences) ; --match only report the number of matches for each sequence, in a single file)\n"
 
 			"\n TWEAK PARAMETERS\n"
+            "-o                       :     Write output reads in fasta file (default : query_output) \n"
+            "-b                       :     Read index from binary files (default: binary_index) \n"
             "-r                       :     Rate of minimizer found in the read to keep it in results (between 0 and 1, default: " << intToString(threshold) << ")\n"
-            "-t                       :     Number of threads used (default: " << intToString(num_thread) << ")\n"
-            "--reads OR --match       :     Output format (default: " << format << ", --reads create a fasta file for each query sequence, containing the matching reads ; --match only report the number of matches for each sequence, in a single file)\n";
+            "-t                       :     Number of threads used (default: " << intToString(num_thread) << ")\n";
 
 	exit(1);
 }

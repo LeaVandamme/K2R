@@ -50,3 +50,9 @@ clean:
 	rm -rf $(EXEC) $(OBJ) $(OBJ_INDEX) $(OBJ_QUERY)*.dat .snakemake .vscode log/memory_res/ log/reads_res/
 
 rebuild: clean $(EXEC)
+
+test:
+	./k2r_index -r example/reads/reads.fa -b example/output/output_binary -t 5 -k 31 -m 15 -s 26 --min-ab 2 --max-ab 2000;
+	./k2r_query -f example/sequences/fof.txt -o example/output/query_fof_output -b example/output/output_binary --match -r 0.6 -t 1;
+	./k2r_query -s example/sequences/sequence1.fasta -o example/output/query_seq_output -b example/output/output_binary --match -r 0.6 -t 1;
+	

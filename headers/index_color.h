@@ -78,7 +78,7 @@ class Index_color{
         vector<pair<string,uint32_t>> verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread);
 
         seq homocompression(seq& sequence);
-        double computeEntropy(uint64_t kmer, int k);
+        double computeEntropy(uint32_t kmer, int k);
         void progressBar(int tailleActuelle, int tailleMax);
 
 };

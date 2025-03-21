@@ -39,7 +39,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     uint64_t total_nb_mmer = 0;
     uint32_t nb_mmer_skip_min = 0;
     uint32_t nb_mmer_skip_max = 0;
-    uint32_t nb_mmer_skip_entropy = 0;
+    //uint32_t nb_mmer_skip_entropy = 0;
 
     // Compute number of reads
     ifstream fichier_pre(read_file, ios::in);
@@ -117,9 +117,9 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                                 }
                                 omp_unset_lock(&nutex[vect_num]);
                             }
-                            else{
-                                nb_mmer_skip_entropy++;
-                            }
+                            // else{
+                            //     nb_mmer_skip_entropy++;
+                            // }
                         }
                     }
                     else{
@@ -484,7 +484,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     cout << "M-mer indexed : " << intToString(mmermap.size()) << endl;
     cout << "M-mer skipped (seen less than " + intToString(min_ab) + " times): " << intToString(nb_mmer_skip_min) << endl;
     cout << "M-mer skipped (seen more than " + intToString(max_ab) + " times): " << intToString(nb_mmer_skip_max) << endl;
-    cout << "M-mer skipped (entropy < " + to_string(entropy) + ") : " << intToString(nb_mmer_skip_entropy) << endl;
+    //cout << "M-mer skipped (entropy < " + to_string(entropy) + ") : " << intToString(nb_mmer_skip_entropy) << endl;
     cout << "Color indexed : " << intToString(colormap_entries) << endl;
     cout << "\t Total color created : " << intToString(total_nb_color) << endl;
     cout << "Number of reads in the file : "  << intToString(global_num_read) << endl;
@@ -844,15 +844,15 @@ seq Index_color::homocompression(seq& sequence){
 }
 
 
-double Index_color::computeEntropy(uint64_t kmer, int k) {
+double Index_color::computeEntropy(uint32_t mmer, int k) {
     int counts[4] = {0, 0, 0, 0};
 
     // Extract nucleotides from the integer.
     // The least-significant 2 bits represent one nucleotide.
     for (int i = 0; i < k; ++i) {
-        uint64_t nucleotide = kmer & 3ULL;  // Extract last 2 bits
+        uint32_t nucleotide = mmer & 3ULL;  // Extract last 2 bits
         counts[nucleotide]++;
-        kmer >>= 2; // Move to the next nucleotide
+        mmer >>= 2; // Move to the next nucleotide
     }
 
     double entropy = 0.0;

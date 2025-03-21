@@ -55,7 +55,7 @@ class Index_color{
             }
         }
 
-        void create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_occ, uint16_t max_ab, uint8_t counting_bf_size, bool homocompression, uint16_t num_thread);
+        void create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_occ, uint16_t max_ab, uint8_t counting_bf_size, bool homocompression, uint16_t num_thread, bool entropy_on, double entropy);
 
         void serialize_mmermap(string& output_file);
         void deserialize_mmermap(string& input_file);
@@ -78,7 +78,7 @@ class Index_color{
         vector<pair<string,uint32_t>> verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread);
 
         seq homocompression(seq& sequence);
-
+        double computeEntropy(uint64_t kmer, int k);
         void progressBar(int tailleActuelle, int tailleMax);
 
 };

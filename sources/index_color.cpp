@@ -28,7 +28,7 @@ Index_color::Index_color(string& mmer_binary_file, string& color_binary_file){
 
 uint Color::color_deleted=0;
 
-void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_ab, uint16_t max_ab, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread) {
+void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t k, uint16_t m, uint16_t min_ab, uint16_t max_ab, uint8_t counting_bf_size, bool homocomp, uint16_t num_thread, bool entropy_on, double entropy) {
     struct timespec begin_index, begin_index_real, end_index, end_index_real, end_bf, end_bf_real, end_crea, end_crea_real;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &begin_index);
     clock_gettime(CLOCK_REALTIME, &begin_index_real);
@@ -39,6 +39,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     uint64_t total_nb_mmer = 0;
     uint32_t nb_mmer_skip_min = 0;
     uint32_t nb_mmer_skip_max = 0;
+    uint32_t nb_mmer_skip_entropy = 0;
 
     // Compute number of reads
     ifstream fichier_pre(read_file, ios::in);
@@ -103,16 +104,36 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                         ligne = homocompression(ligne);
                     }
                     minimizer_list_tmp = ml.get_minimizer_list(ligne);
-                    for(mmer mmer : minimizer_list_tmp) {
-                        mmer_hash = revhash(mmer);
-                        ind_to_insert = mmer_hash & size_vect_mask;
-                        uint64_t vect_num = ind_to_insert %1024;
-                        uint64_t tab_indice = ind_to_insert/1024;
-                        omp_set_lock(&nutex[vect_num]);
-                        if(counting_bf_tab[vect_num][tab_indice] < max_ab) {
-                            counting_bf_tab[vect_num][tab_indice]++;
+                    if(entropy_on){
+                        for(mmer mmer : minimizer_list_tmp) {
+                            if(computeEntropy(mmer, k) > entropy){
+                                mmer_hash = revhash(mmer);
+                                ind_to_insert = mmer_hash & size_vect_mask;
+                                uint64_t vect_num = ind_to_insert %1024;
+                                uint64_t tab_indice = ind_to_insert/1024;
+                                omp_set_lock(&nutex[vect_num]);
+                                if(counting_bf_tab[vect_num][tab_indice] < max_ab) {
+                                    counting_bf_tab[vect_num][tab_indice]++;
+                                }
+                                omp_unset_lock(&nutex[vect_num]);
+                            }
+                            else{
+                                nb_mmer_skip_entropy++;
+                            }
                         }
-                        omp_unset_lock(&nutex[vect_num]);
+                    }
+                    else{
+                        for(mmer mmer : minimizer_list_tmp) {
+                            mmer_hash = revhash(mmer);
+                            ind_to_insert = mmer_hash & size_vect_mask;
+                            uint64_t vect_num = ind_to_insert %1024;
+                            uint64_t tab_indice = ind_to_insert/1024;
+                            omp_set_lock(&nutex[vect_num]);
+                            if(counting_bf_tab[vect_num][tab_indice] < max_ab) {
+                                counting_bf_tab[vect_num][tab_indice]++;
+                            }
+                            omp_unset_lock(&nutex[vect_num]);
+                        }
                     }
                 }
             }
@@ -226,11 +247,24 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
 
                         // Supprime les minimizers qui ne sont pas dans le filtre de bloom "bf_bool"
                         uint64_t curr_id(0);
-                        for (uint im = 0; im < minimizers_list.size(); im++) {
-                            uint64_t mmer_hash = revhash(minimizers_list[im]);
-                            uint64_t ind_to_insert = mmer_hash & size_vect_mask;
-                            if (bf_bool[ind_to_insert % 1024][ind_to_insert / 1024]) {
-                                minimizers_list[curr_id++]=minimizers_list[im];
+                        if(entropy_on){
+                            for (uint im = 0; im < minimizers_list.size(); im++) {
+                                if(computeEntropy(minimizers_list[im], k) > entropy){
+                                    uint64_t mmer_hash = revhash(minimizers_list[im]);
+                                    uint64_t ind_to_insert = mmer_hash & size_vect_mask;
+                                    if (bf_bool[ind_to_insert % 1024][ind_to_insert / 1024]) {
+                                        minimizers_list[curr_id++]=minimizers_list[im];
+                                    }
+                                }
+                            }
+                        }
+                        else{
+                            for (uint im = 0; im < minimizers_list.size(); im++) {
+                                uint64_t mmer_hash = revhash(minimizers_list[im]);
+                                uint64_t ind_to_insert = mmer_hash & size_vect_mask;
+                                if (bf_bool[ind_to_insert % 1024][ind_to_insert / 1024]) {
+                                    minimizers_list[curr_id++]=minimizers_list[im];
+                                }
                             }
                         }
                         minimizers_list.resize(curr_id);
@@ -450,6 +484,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
     cout << "M-mer indexed : " << intToString(mmermap.size()) << endl;
     cout << "M-mer skipped (seen less than " + intToString(min_ab) + " times): " << intToString(nb_mmer_skip_min) << endl;
     cout << "M-mer skipped (seen more than " + intToString(max_ab) + " times): " << intToString(nb_mmer_skip_max) << endl;
+    cout << "M-mer skipped (entropy < " + to_string(entropy) + ") : " << intToString(nb_mmer_skip_entropy) << endl;
     cout << "Color indexed : " << intToString(colormap_entries) << endl;
     cout << "\t Total color created : " << intToString(total_nb_color) << endl;
     cout << "Number of reads in the file : "  << intToString(global_num_read) << endl;
@@ -806,4 +841,27 @@ seq Index_color::homocompression(seq& sequence){
         i++;
     }
     return new_seq;
+}
+
+
+double Index_color::computeEntropy(uint64_t kmer, int k) {
+    int counts[4] = {0, 0, 0, 0};
+
+    // Extract nucleotides from the integer.
+    // The least-significant 2 bits represent one nucleotide.
+    for (int i = 0; i < k; ++i) {
+        uint64_t nucleotide = kmer & 3ULL;  // Extract last 2 bits
+        counts[nucleotide]++;
+        kmer >>= 2; // Move to the next nucleotide
+    }
+
+    double entropy = 0.0;
+    // Compute entropy using the formula: -sum(p * log2(p))
+    for (int i = 0; i < 4; ++i) {
+        if (counts[i] > 0) {
+            double p = static_cast<double>(counts[i]) / k;
+            entropy -= p * std::log2(p);
+        }
+    }
+    return entropy;
 }

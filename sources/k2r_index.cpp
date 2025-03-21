@@ -22,8 +22,9 @@ uint16_t min_ab(2);
 uint16_t max_ab(1000);
 uint16_t num_thread(1);
 string read_file(""), binary_prefix("binary_index");
-bool max_ab_on(false);
 bool homocompression(false);
+double entropy(0);
+bool entropy_on(false);
 
 void PrintHelp()
 {
@@ -41,6 +42,7 @@ void PrintHelp()
             "-m                       :     Minimizer size (default: " << intToString(m) << ")\n"
 			"-s                       :     Counting bloom filter size (log(2), default " << intToString(counting_bf_size) << "). The size must be superior to the number of minimizers to index, to avoid a full structure.\n"
 			"-h                       :     Homocompression of reads \n"
+			"--entropy                :     Minimal entropy for each k-mer \n"
 			"--min-ab                 :     Minimizers minimum abundance (default: << " << min_ab << ")\n"
 			"--max-ab                 :     Minimizers maximum abundance (default: << " << max_ab << ", must be < 2^16)\n";
 
@@ -57,6 +59,7 @@ void ProcessArgs(int argc, char** argv)
 	{
 		{"min-ab", required_argument, nullptr, 'min'},
 		{"max-ab", required_argument, nullptr, 'max'},
+		{"entropy", required_argument, nullptr, 'entropy'},
 		{nullptr, no_argument, nullptr, 0}
 	};
 	while (true)
@@ -96,8 +99,11 @@ void ProcessArgs(int argc, char** argv)
 				min_ab=stoi(optarg);
 				break;
 			case 'max':
-				max_ab_on = true;
 				max_ab=stoi(optarg);
+				break;
+			case 'entropy':
+				entropy=stod(optarg);
+				entropy_on = true;
 				break;
 			case '?':
 				PrintHelp();
@@ -124,8 +130,8 @@ int main(int argc, char *argv[]){
 		num_thread=(1);
 		read_file=("");
 		binary_prefix=("binary_index");
-		max_ab_on=(false);
-		homocompression=(false);
+		homocompression= false;
+		entropy_on = false;
 
 
 
@@ -141,7 +147,7 @@ int main(int argc, char *argv[]){
 		cout << "INDEX CONSTRUCTION" << endl;
 		cout << "=========================================================" << endl << endl;
 		cout << "Start indexing the file : " + read_file << endl << endl;
-		index_color.create_index_mmer_no_unique(read_file, k, m, min_ab, max_ab, counting_bf_size, homocompression, num_thread);
+		index_color.create_index_mmer_no_unique(read_file, k, m, min_ab, max_ab, counting_bf_size, homocompression, num_thread, entropy_on, entropy);
 		auto end_indexing = high_resolution_clock::now();
 		auto indexing = duration_cast<seconds>(end_indexing - start_indexing);
 

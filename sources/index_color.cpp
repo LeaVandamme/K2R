@@ -145,6 +145,7 @@ void Index_color::create_index_mmer_no_unique(const string& read_file, uint16_t 
                 }
             }
         }
+        
         delete[] counting_bf_tab;
         #pragma omp barrier
 
@@ -638,18 +639,20 @@ vector<iread> Index_color::query_sequence_fp_match(mmer_map& mmermap, color_map*
 
 vector<pair<string,uint32_t>> Index_color::query_sequence_fp_reads(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread){
     vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
-    return verif_fp(poss_reads, query_sequence, threshold, num_thread, "reads");
+    return verif_fp(poss_reads, query_sequence, threshold, num_thread, "reads", "");
 }
 
-vector<pair<string,uint32_t>> Index_color::query_sequence_fp_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread){
+vector<pair<string,uint32_t>> Index_color::query_sequence_fp_fp(mmer_map& mmermap, color_map* colormap, const vector<mmer>& ml, double  threshold, const string& query_sequence, uint16_t num_thread, string csv){
     vector<iread> poss_reads = get_possible_reads_threshold(mmermap, colormap, ml, threshold, num_thread);
-    return verif_fp(poss_reads, query_sequence, threshold, num_thread, "fp");
+    return verif_fp(poss_reads, query_sequence, threshold, num_thread, "fp", csv);
 }
 
 
-void Index_color::query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread, string format) {
+void Index_color::query_fasta(const string& file_in, const string& file_out, double threshold, uint16_t num_thread, string format, string csv) {
     ifstream fichier(file_in, ios::in);
     ofstream out(file_out, ios::out | ios::app);
+    string line = "";
+    string ligne;
 
     if(fichier) {
         vector<pair<string,uint32_t>> vect_reads_reads;
@@ -657,11 +660,12 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         vector<mmer>  global_ml;
         minimizerLister ml = minimizerLister(k, m);
         vector<mmer> local_ml;
-        string ligne;
+        
         while(!fichier.eof()) {
             getline(fichier,ligne);
             if(ligne.size()>0){
                 if(ligne[0] != '>'){
+                    line = ligne;
                     local_ml = ml.get_minimizer_list(ligne);
                 }
             }
@@ -671,17 +675,17 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
         fichier.close();
         sortAndRemoveDuplicates(local_ml);
         if(format == "reads"){
-            vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, local_ml, threshold,ligne,num_thread);
+            vect_reads_reads = query_sequence_fp_reads(mmermap, colormap, local_ml, threshold,line,num_thread);
             sort(vect_reads_reads.begin(), vect_reads_reads.end(), [](const pair<string,uint32_t> &left, const pair<string,uint32_t> &right) {return left.second > right.second;});
             for(auto s : vect_reads_reads) {
                 out <<">"+to_string(s.second)+'\n'+ s.first  << endl;
             }
         }
         else if(format == "fp"){
-            vect_reads_reads = query_sequence_fp_fp(mmermap, colormap, local_ml, threshold,ligne,num_thread);
-        }
+             vect_reads_reads = query_sequence_fp_fp(mmermap, colormap, local_ml, threshold,line,num_thread, csv);
+         }
         else{
-            vect_reads_match = query_sequence_fp_match(mmermap, colormap, local_ml, threshold,ligne,num_thread);
+            vect_reads_match = query_sequence_fp_match(mmermap, colormap, local_ml, threshold,line,num_thread);
             out << file_in << " : " << vect_reads_match.size() << endl;
         }
     }
@@ -692,7 +696,7 @@ void Index_color::query_fasta(const string& file_in, const string& file_out, dou
 
 
 
-void Index_color::query_fof(const string& file_in,const string& outputprefix, double threshold, uint16_t num_thread, string format){
+void Index_color::query_fof(const string& file_in,const string& outputprefix, double threshold, uint16_t num_thread, string format, string csv){
     ifstream fichier(file_in, ios::in);
 
     #pragma omp parallel num_threads(num_thread)
@@ -708,12 +712,12 @@ void Index_color::query_fof(const string& file_in,const string& outputprefix, do
                     size_t pos = ligne.find_last_of("/");
                     string out = outputprefix + "_" + ligne.substr(pos+1, '.');
                     if (!fichier.eof()) {
-                        query_fasta(ligne, out, threshold, num_thread, format);
+                        query_fasta(ligne, out, threshold, num_thread, format, csv);
                     }
                 }
                 else{
                     if (!fichier.eof()) {
-                        query_fasta(ligne, outputprefix, threshold, num_thread, format);
+                        query_fasta(ligne, outputprefix, threshold, num_thread, format, csv);
                     }
                 }
             }
@@ -772,11 +776,10 @@ string Index_color::get_header(iread i) {
 
 
 
-vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread, string format){
+vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_to_verify, const string& sequences, double threshold, uint16_t num_thread, string format, string csv){
     vector<pair<string,uint32_t>> reads_to_return;
     minimizerLister ml = minimizerLister(k, m);
     vector<kmer> kmer_sequence = ml.get_kmer_list(sequences);
-
 
     for(uint i(0); i<reads_to_verify.size(); i++) {
         vector<kmer> kmers_read;
@@ -789,15 +792,17 @@ vector<pair<string,uint32_t>> Index_color::verif_fp(const vector<iread>& reads_t
         std::sort(kmer_sequence.begin(), kmer_sequence.end());
         std::sort(kmers_read.begin(), kmers_read.end());
         uint64_t shared_kmers(countSharedElements(kmer_sequence, kmers_read));
+        //cout << shared_kmers << ";" << threshold*(kmer_sequence.size()) << endl;
         if(shared_kmers >= (threshold*(kmer_sequence.size()))) {
             reads_to_return.push_back({read_seq,reads_to_verify[i]});
         }
     }
     if(format == "fp"){
-        string filenameCSV = "query_10000_500.csv";
+        string filenameCSV = csv + ".csv";
         ofstream csv_file(filenameCSV, ios::out | ios::app);
         if(reads_to_verify.size() != 0){
-            csv_file << reads_to_verify.size() << "," << reads_to_return.size() << "," << float(reads_to_return.size()/reads_to_verify.size()) << "\n";
+            //cout << reads_to_verify.size() << "," << reads_to_return.size() << endl;
+            csv_file << reads_to_verify.size() << "," << reads_to_return.size() << "," << float(double(reads_to_return.size())/reads_to_verify.size()) << "\n";
         }
     }
 

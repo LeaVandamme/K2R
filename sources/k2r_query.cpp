@@ -23,6 +23,7 @@ bool fof(false), fasta(false);
 double threshold(0.4);
 uint16_t num_thread(1);
 string format = "match";
+string csv_output="";
 
 
 
@@ -54,7 +55,7 @@ void ProcessArgs(int argc, char** argv)
 	{
         {"reads", no_argument, nullptr, 'reads'},
         {"match", no_argument, nullptr, 'match'},
-        {"fp", no_argument, nullptr, 'fp'},
+        {"fp", required_argument, nullptr, 'fp'},
 		{nullptr, no_argument, nullptr, 0}
 	};
 	while (true)
@@ -94,6 +95,7 @@ void ProcessArgs(int argc, char** argv)
 				break;
             case 'fp':
                 format = "fp";
+                csv_output=optarg;
                 break;
 			case '?':
 				PrintHelp();
@@ -130,7 +132,7 @@ int main(int argc, char *argv[]){
             cout << "=========================================================" << endl << endl;
             cout << "Beginning of query : " + query_file << endl;
             auto start_querying_seq = high_resolution_clock::now();
-            index_color.query_fof(query_file, output_prefix, threshold, num_thread, format);
+            index_color.query_fof(query_file, output_prefix, threshold, num_thread, format, csv_output);
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);
             cout << "Querying the file takes " << (float)querying_seq.count() << " ns." << endl;
@@ -143,7 +145,7 @@ int main(int argc, char *argv[]){
             auto start_querying_seq = high_resolution_clock::now();
             size_t pos = query_file.find_last_of("/");
             string output = output_prefix + "_" + query_file.substr(pos+1, '.');
-            index_color.query_fasta(query_file, output, threshold, num_thread, format);
+            index_color.query_fasta(query_file, output, threshold, num_thread, format, csv_output);
             auto end_querying_seq = high_resolution_clock::now();
             auto querying_seq = duration_cast<nanoseconds>(end_querying_seq - start_querying_seq);
             cout << "Output file : " + output << endl;
